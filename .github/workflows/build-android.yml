@@ -18,8 +18,15 @@ jobs:
         with:
           node-version: '18'
 
+      # ✅ 修复 Yarn 版本问题
+      - name: Enable Corepack (for Yarn 4.x)
+        run: corepack enable
+
+      - name: Set Yarn version
+        run: corepack prepare yarn@4.9.1 --activate
+
       - name: Install dependencies
-        run: yarn install --frozen-lockfile
+        run: yarn install --immutable
 
       - name: Generate drizzle schema
         run: npx drizzle-kit generate
