@@ -2,8 +2,9 @@ import { CameraView } from 'expo-camera'
 import React from 'react'
 import { Modal, TouchableOpacity, View } from 'react-native'
 
-import { useCameraHandler } from './useCameraHandler'
 import { X } from '@/componentsV2/icons'
+
+import { useCameraHandler } from './useCameraHandler'
 
 interface CameraModalProps {
   onPhotoTaken: (photoUri: string) => void
@@ -15,7 +16,7 @@ export const useCameraModal = (props: CameraModalProps) => {
 
   const modal = (
     <Modal backdropColor="black" visible={isCameraVisible} animationType="slide" onRequestClose={handleCloseCamera}>
-      <CameraView className="flex-1" facing="back" ref={cameraRef} autofocus="on" />
+      <CameraView style={{ flex: 1 }} facing="back" ref={cameraRef} />
 
       <TouchableOpacity
         className="absolute left-5 top-[50px] rounded-full bg-black/50 p-1"

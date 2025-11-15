@@ -1,28 +1,28 @@
 import { BottomSheetBackdrop, BottomSheetModal, useBottomSheetScrollableCreator } from '@gorhom/bottom-sheet'
 import { LegendList } from '@legendapp/list'
-import { sortBy } from 'lodash'
-import debounce from 'lodash/debounce'
-import React, { forwardRef, useEffect, useMemo, useState } from 'react'
-import { useTranslation } from 'react-i18next'
-import { BackHandler, Platform, useWindowDimensions, TouchableOpacity } from 'react-native'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { useNavigation } from '@react-navigation/native'
 import { Button } from 'heroui-native'
+import { sortBy } from 'lodash'
+import React, { forwardRef, useCallback, useEffect, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import { BackHandler, InteractionManager, TouchableOpacity, useWindowDimensions } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
+import { SearchInput } from '@/componentsV2/base/SearchInput'
+import Text from '@/componentsV2/base/Text'
+import { ModelTags } from '@/componentsV2/features/ModelTags'
 import { ModelIcon, ProviderIcon } from '@/componentsV2/icons'
 import { BrushCleaning, Settings } from '@/componentsV2/icons/LucideIcon'
+import XStack from '@/componentsV2/layout/XStack'
+import YStack from '@/componentsV2/layout/YStack'
 import { isEmbeddingModel, isRerankModel } from '@/config/models'
 import { useAllProviders } from '@/hooks/useProviders'
 import { useTheme } from '@/hooks/useTheme'
-import { Model, Provider } from '@/types/assistant'
+import type { Model, Provider } from '@/types/assistant'
+import type { HomeNavigationProps } from '@/types/naviagate'
 import { getModelUniqId } from '@/utils/model'
-import { ModelTags } from '@/componentsV2/features/ModelTags'
-import YStack from '@/componentsV2/layout/YStack'
-import XStack from '@/componentsV2/layout/XStack'
-import { SearchInput } from '@/componentsV2/base/SearchInput'
-import Text from '@/componentsV2/base/Text'
+
 import { EmptyModelView } from '../SettingsScreen/EmptyModelView'
-import { useNavigation } from '@react-navigation/native'
-import { HomeNavigationProps } from '@/types/naviagate'
 
 interface ModelSheetProps {
   mentions: Model[]
@@ -34,7 +34,6 @@ const ModelSheet = forwardRef<BottomSheetModal, ModelSheetProps>(({ mentions, se
   const { t } = useTranslation()
   const { isDark } = useTheme()
   const [selectedModels, setSelectedModels] = useState<string[]>(() => mentions.map(m => getModelUniqId(m)))
-  const [inputValue, setInputValue] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
   const [isMultiSelectActive, setIsMultiSelectActive] = useState(false)
   const [isVisible, setIsVisible] = useState(false)
@@ -42,21 +41,20 @@ const ModelSheet = forwardRef<BottomSheetModal, ModelSheetProps>(({ mentions, se
   const dimensions = useWindowDimensions()
   const navigation = useNavigation<HomeNavigationProps>()
 
-  const debouncedSetQuery = debounce((query: string) => {
-    setSearchQuery(query)
-  }, 300)
-
-  const handleSearchChange = (text: string) => {
-    setInputValue(text)
-    debouncedSetQuery(text)
-  }
+  const handleSearchChange = useCallback((text: string) => {
+    setSearchQuery(text)
+  }, [])
 
   useEffect(() => {
     setSelectedModels(mentions.map(m => getModelUniqId(m)))
   }, [mentions])
 
   useEffect(() => {
-    if (!isVisible) return
+    if (!isVisible) {
+      // 清空搜索状态
+      setSearchQuery('')
+      return
+    }
 
     const backAction = () => {
       ;(ref as React.RefObject<BottomSheetModal>)?.current?.dismiss()
@@ -69,7 +67,7 @@ const ModelSheet = forwardRef<BottomSheetModal, ModelSheetProps>(({ mentions, se
 
   const { providers } = useAllProviders()
   const selectOptions = providers
-    .filter(p => p.models && p.models.length > 0 && p.enabled)
+    .filter(p => p.id === 'cherryai' || (p.models && p.models.length > 0 && p.enabled))
     .map(p => ({
       label: p.isSystem ? t(`provider.${p.id}`) : p.name,
       title: p.name,
@@ -136,7 +134,9 @@ const ModelSheet = forwardRef<BottomSheetModal, ModelSheetProps>(({ mentions, se
     const newMentions = allModelOptions
       .filter(option => newSelection.includes(option.value))
       .map(option => option.model)
-    await setMentions(newMentions, isMultiSelectActive)
+    InteractionManager.runAfterInteractions(async () => {
+      await setMentions(newMentions, isMultiSelectActive)
+    })
   }
 
   const handleClearAll = async () => {
@@ -167,11 +167,10 @@ const ModelSheet = forwardRef<BottomSheetModal, ModelSheetProps>(({ mentions, se
     <BottomSheetBackdrop {...props} appearsOnIndex={0} disappearsOnIndex={-1} opacity={0.5} pressBehavior="close" />
   )
 
-  // Create scrollable component for BottomSheet + LegendList integration
   const BottomSheetLegendListScrollable = useBottomSheetScrollableCreator()
 
-  const ESTIMATED_ITEM_SIZE = 20
-  const DRAW_DISTANCE = 1200
+  const ESTIMATED_ITEM_SIZE = 60
+  const DRAW_DISTANCE = 800
 
   return (
     <BottomSheetModal
@@ -188,14 +187,17 @@ const ModelSheet = forwardRef<BottomSheetModal, ModelSheetProps>(({ mentions, se
       enablePanDownToClose={true}
       topInset={insets.top}
       android_keyboardInputMode="adjustResize"
-      keyboardBehavior={Platform.OS === 'ios' ? 'interactive' : 'fillParent'}
+      keyboardBehavior="extend"
       keyboardBlurBehavior="restore"
+      enableDismissOnClose
       maxDynamicContentSize={dimensions.height - 2 * insets.top}
       onDismiss={() => setIsVisible(false)}
       onChange={index => setIsVisible(index >= 0)}>
       <LegendList
         data={listData}
+        extraData={{ selectedModels, isMultiSelectActive, searchQuery }}
         renderItem={({ item, index }: { item: ListItem; index: number }) => {
+          if (!item) return null
           if (item.type === 'header') {
             return (
               <TouchableOpacity
@@ -208,15 +210,17 @@ const ModelSheet = forwardRef<BottomSheetModal, ModelSheetProps>(({ mentions, se
                   alignItems: 'center'
                 }}
                 className="px-2">
-                <XStack className="gap-3 items-center justify-start px-0">
+                <XStack className="items-center justify-start gap-3 px-0">
                   <XStack className="items-center justify-center">
                     <ProviderIcon provider={item.provider} size={24} />
                   </XStack>
-                  <Text className="text-lg font-bold text-gray-80 dark:text-gray-80">{item.label}</Text>
+                  <Text className="text-lg font-bold text-gray-400 ">{item.label.toUpperCase()}</Text>
                 </XStack>
-                <TouchableOpacity onPress={() => navigateToProvidersSetting(item.provider)}>
-                  <Settings className="text-gray-80 dark:text-gray-80" size={16} />
-                </TouchableOpacity>
+                {item.provider.id !== 'cherryai' && (
+                  <TouchableOpacity onPress={() => navigateToProvidersSetting(item.provider)}>
+                    <Settings className="text-gray-80" size={16} />
+                  </TouchableOpacity>
+                )}
               </TouchableOpacity>
             )
           }
@@ -227,28 +231,23 @@ const ModelSheet = forwardRef<BottomSheetModal, ModelSheetProps>(({ mentions, se
             <TouchableOpacity
               activeOpacity={0.7}
               onPress={() => handleModelToggle(item.value)}
-              className={`px-2 py-2 justify-between rounded-lg border ${
-                isSelected
-                  ? 'border-green-20 dark:border-green-dark-20 bg-green-10 dark:bg-green-dark-10'
-                  : 'border-transparent bg-transparent'
+              className={`justify-between rounded-lg border px-2 py-2 ${
+                isSelected ? 'border-green-20 bg-green-10' : 'border-transparent bg-transparent'
               }`}>
-              <XStack className="gap-2 flex-1 items-center justify-between w-full">
-                <XStack className="gap-2 flex-1 items-center max-w-[80%]">
-                  <XStack className="justify-center items-center flex-shrink-0">
+              <XStack className="w-full items-center justify-between gap-2">
+                <XStack className="flex-1 items-center gap-2" style={{ minWidth: 0 }}>
+                  <XStack className="shrink-0 items-center justify-center">
                     <ModelIcon model={item.model} size={24} />
                   </XStack>
                   <Text
-                    className={`flex-1 ${
-                      isSelected
-                        ? 'text-green-100 dark:text-green-dark-100'
-                        : 'text-text-primary dark:text-text-primary-dark'
-                    }`}
+                    className={isSelected ? 'text-green-100' : 'text-text-primary'}
                     numberOfLines={1}
-                    ellipsizeMode="tail">
+                    ellipsizeMode="tail"
+                    style={{ flex: 1, minWidth: 0 }}>
                     {item.label}
                   </Text>
                 </XStack>
-                <XStack className="gap-2 items-center flex-shrink-0">
+                <XStack className="shrink-0 items-center gap-2">
                   <ModelTags model={item.model} size={11} />
                 </XStack>
               </XStack>
@@ -256,17 +255,17 @@ const ModelSheet = forwardRef<BottomSheetModal, ModelSheetProps>(({ mentions, se
           )
         }}
         keyExtractor={(item, index) =>
-          item.type === 'header' ? `header-${(item as any).label}-${index}` : (item as any).value
+          item?.type === 'header' ? `header-${(item as any).label}-${index}` : (item as any).value
         }
-        getItemType={item => item.type}
+        getItemType={item => item?.type ?? 'model'}
         ItemSeparatorComponent={() => <YStack className="h-2" />}
         ListHeaderComponentStyle={{ minHeight: 50 }}
         ListHeaderComponent={
           <YStack className="gap-4" style={{ paddingTop: 4 }}>
-            <XStack className="gap-[5px] flex-1 items-center justify-center">
+            <XStack className="flex-1 items-center justify-center gap-[5px]">
               <YStack className="flex-1">
                 <SearchInput
-                  value={inputValue}
+                  value={searchQuery}
                   onChangeText={handleSearchChange}
                   placeholder={t('common.search_placeholder')}
                 />
@@ -275,32 +274,21 @@ const ModelSheet = forwardRef<BottomSheetModal, ModelSheetProps>(({ mentions, se
                 <Button
                   size="sm"
                   className={`rounded-full ${
-                    isMultiSelectActive
-                      ? 'bg-green-10 dark:bg-green-dark-10 border border-green-20 dark:border-green-dark-20'
-                      : 'bg-ui-card dark:bg-ui-card-dark border border-transparent'
+                    isMultiSelectActive ? 'border-green-20 bg-green-10 border' : 'bg-ui-card border border-transparent'
                   }`}
                   onPress={toggleMultiSelectMode}>
-                  <Button.LabelContent>
-                    <Text
-                      className={
-                        isMultiSelectActive
-                          ? 'text-green-100 dark:text-green-dark-100'
-                          : 'text-text-primary dark:text-text-primary-dark'
-                      }>
+                  <Button.Label>
+                    <Text className={isMultiSelectActive ? 'text-green-100' : 'text-text-primary'}>
                       {t('button.multiple')}
                     </Text>
-                  </Button.LabelContent>
+                  </Button.Label>
                 </Button>
               )}
               {multiple && isMultiSelectActive && (
-                <Button
-                  size="sm"
-                  className="rounded-full bg-ui-card dark:bg-ui-card-dark"
-                  isIconOnly
-                  onPress={handleClearAll}>
-                  <Button.LabelContent>
-                    <BrushCleaning size={18} className="text-text-primary dark:text-text-primary-dark" />
-                  </Button.LabelContent>
+                <Button size="sm" className="bg-ui-card rounded-full" isIconOnly onPress={handleClearAll}>
+                  <Button.Label>
+                    <BrushCleaning size={18} className="text-text-primary" />
+                  </Button.Label>
                 </Button>
               )}
             </XStack>
@@ -308,13 +296,14 @@ const ModelSheet = forwardRef<BottomSheetModal, ModelSheetProps>(({ mentions, se
         }
         ListEmptyComponent={<EmptyModelView />}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: insets.bottom }}
+        contentContainerStyle={{
+          paddingHorizontal: 20,
+          paddingBottom: insets.bottom + 20
+        }}
         renderScrollComponent={BottomSheetLegendListScrollable}
         estimatedItemSize={ESTIMATED_ITEM_SIZE}
         drawDistance={DRAW_DISTANCE}
-        maintainVisibleContentPosition
         recycleItems
-        waitForInitialLayout
       />
     </BottomSheetModal>
   )

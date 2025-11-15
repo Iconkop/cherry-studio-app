@@ -1,25 +1,27 @@
+import Constants from 'expo-constants'
 import * as ExpoLinking from 'expo-linking'
 import React from 'react'
-import {
-  Text,
-  Image,
-  XStack,
-  YStack,
-  PressableRow,
-  Row,
-  Group,
-  Container,
-  SafeAreaContainer,
-  HeaderBar
-} from '@/componentsV2'
 import { useTranslation } from 'react-i18next'
 
-import { loggerService } from '@/services/LoggerService'
+import {
+  Container,
+  Group,
+  HeaderBar,
+  Image,
+  PressableRow,
+  Row,
+  SafeAreaContainer,
+  Text,
+  XStack,
+  YStack
+} from '@/componentsV2'
 import { ArrowUpRight, Copyright, Github, Globe, Mail, Rss } from '@/componentsV2/icons/LucideIcon'
+import { loggerService } from '@/services/LoggerService'
 const logger = loggerService.withContext('AboutScreen')
 
 export default function AboutScreen() {
   const { t } = useTranslation()
+  const appVersion = Constants.expoConfig?.version || 'latest'
 
   const openLink = async (url: string) => {
     try {
@@ -30,7 +32,7 @@ export default function AboutScreen() {
   }
 
   return (
-    <SafeAreaContainer style={{ flex: 1 }}>
+    <SafeAreaContainer>
       <HeaderBar
         title={t('settings.about.header')}
         rightButton={{
@@ -39,20 +41,18 @@ export default function AboutScreen() {
         }}
       />
       <Container>
-        <YStack className="gap-6 flex-1">
+        <YStack className="flex-1 gap-6">
           {/* Logo and Description */}
           <Group>
             <Row className="gap-4">
               <Image className="h-[70px] w-[70px] rounded-[41px]" source={require('@/assets/images/favicon.png')} />
-              <YStack className="gap-[5px] py-1 flex-1">
-                <Text className="font-bold text-[22px]">{t('common.cherry_studio')}</Text>
-                <Text size="sm" className="text-text-secondary dark:text-text-secondary-dark" numberOfLines={0}>
+              <YStack className="flex-1 gap-[5px] py-1">
+                <Text className="text-[22px] font-bold">{t('common.cherry_studio')}</Text>
+                <Text className="text-text-secondary text-sm" numberOfLines={0}>
                   {t('common.cherry_studio_description')}
                 </Text>
-                <Text
-                  size="sm"
-                  className="border border-green-20 dark:border-green-dark-20 bg-green-10 dark:bg-green-dark-10 text-green-100 dark:text-green-dark-100 self-start px-2 py-0.5 rounded-[25.37px]">
-                  v0.0.1
+                <Text className="border-green-20 bg-green-10 self-start rounded-[25.37px] border px-2 py-0.5 text-sm text-green-100">
+                  v{appVersion}
                 </Text>
               </YStack>
             </Row>

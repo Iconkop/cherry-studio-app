@@ -1,13 +1,25 @@
-import { AudioLines, CirclePause, Copy, RefreshCw, TextSelect, ThumbsUp, Trash2 } from '@/componentsV2/icons/LucideIcon'
-import React, { FC, memo, useEffect, useRef, useState } from 'react'
+import type { FC } from 'react'
+import React, { memo, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import type { ContextMenuListProps } from '@/componentsV2'
+import { ContextMenu } from '@/componentsV2'
+import type { TextSelectionSheetRef } from '@/componentsV2/features/Sheet/TextSelectionSheet'
+import TextSelectionSheet from '@/componentsV2/features/Sheet/TextSelectionSheet'
 import { TranslatedIcon, TranslationIcon } from '@/componentsV2/icons'
-import TextSelectionSheet, { TextSelectionSheetRef } from '@/componentsV2/features/Sheet/TextSelectionSheet'
+import {
+  AudioLines,
+  CirclePause,
+  Copy,
+  RefreshCw,
+  Share,
+  TextSelect,
+  ThumbsUp,
+  Trash2
+} from '@/componentsV2/icons/LucideIcon'
 import { useMessageActions } from '@/hooks/useMessageActions'
-import { Assistant } from '@/types/assistant'
-import { Message } from '@/types/message'
-import { ContextMenu, ContextMenuListProps } from '@/componentsV2'
+import type { Assistant } from '@/types/assistant'
+import type { Message } from '@/types/message'
 
 interface MessageItemProps {
   children: React.ReactNode
@@ -32,7 +44,8 @@ const MessageContextMenu: FC<MessageItemProps> = ({ children, message, assistant
     handleDeleteTranslation,
     getMessageContent,
     handleBestAnswer,
-    isUseful
+    isUseful,
+    handleShare
   } = useMessageActions({ message, assistant })
 
   const handleSelectText = async () => {
@@ -57,7 +70,7 @@ const MessageContextMenu: FC<MessageItemProps> = ({ children, message, assistant
   const contextMenuItems: ContextMenuListProps[] = [
     {
       title: t('common.copy'),
-      iOSIcon: 'document.on.document',
+      iOSIcon: 'doc.on.doc',
       androidIcon: <Copy size={16} />,
       onSelect: handleCopy
     },
@@ -71,7 +84,7 @@ const MessageContextMenu: FC<MessageItemProps> = ({ children, message, assistant
       ? [
           {
             title: t('common.regenerate'),
-            iOSIcon: 'arrow.clockwise' as const,
+            iOSIcon: 'arrow.clockwise',
             androidIcon: <RefreshCw size={16} />,
             onSelect: handleRegenerate
           }
@@ -106,6 +119,12 @@ const MessageContextMenu: FC<MessageItemProps> = ({ children, message, assistant
       color: isTranslated ? 'red' : undefined,
       backgroundColor: isTranslated ? 'rgba(239, 68, 68, 0.1)' : undefined,
       onSelect: isTranslated ? handleDeleteTranslation : handleTranslate
+    },
+    {
+      title: t('message.share_message'),
+      androidIcon: <Share size={18} />,
+      iOSIcon: 'square.and.arrow.up',
+      onSelect: handleShare
     },
     {
       title: t('message.delete_message'),

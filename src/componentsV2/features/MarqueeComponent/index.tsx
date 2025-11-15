@@ -1,13 +1,14 @@
+import { Spinner } from 'heroui-native'
 import { AnimatePresence, MotiView } from 'moti'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Spinner } from 'heroui-native'
 
-import { MessageBlockStatus, ThinkingMessageBlock } from '@/types/message'
-import { ChevronsRight } from '@/componentsV2/icons'
 import Text from '@/componentsV2/base/Text'
+import { ChevronsRight } from '@/componentsV2/icons'
 import XStack from '@/componentsV2/layout/XStack'
 import YStack from '@/componentsV2/layout/YStack'
+import type { ThinkingMessageBlock } from '@/types/message'
+import { MessageBlockStatus } from '@/types/message'
 
 interface MarqueeComponentProps {
   block: ThinkingMessageBlock
@@ -77,13 +78,6 @@ const MarqueeComponent: React.FC<MarqueeComponentProps> = ({ block, expanded }) 
 
   return (
     <MotiView
-      style={{
-        flex: 1,
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        flexDirection: 'row',
-        width: '100%'
-      }}
       animate={{
         height: containerHeight
       }}
@@ -91,107 +85,107 @@ const MarqueeComponent: React.FC<MarqueeComponentProps> = ({ block, expanded }) 
         type: 'timing',
         duration: 50
       }}>
-      <AnimatePresence>
-        {isStreaming && (
-          <MotiView
-            key="spinner"
-            from={{ width: 0, height: 0, opacity: 0, marginRight: 0 }}
-            animate={{ width: 20, height: 20, opacity: 1, marginRight: 10 }}
-            exit={{ width: 0, height: 0, opacity: 0, marginRight: 0 }}
-            transition={{ type: 'timing', duration: 150 }}>
-            <Spinner size="sm" color="#0067A8" />
-          </MotiView>
-        )}
-      </AnimatePresence>
-      <YStack className="gap-1 flex-1 relative h-full">
-        <XStack className="justify-between items-center">
-          <Text className="text-lg text-text-primary dark:text-text-primary-dark font-bold z-10">
-            {t('chat.think', { seconds: Math.floor((block.thinking_millsec || 0) / 1000) })}
-          </Text>
-          <MotiView
-            animate={{
-              rotate: expanded ? '90deg' : '0deg'
-            }}
-            transition={{
-              type: 'timing',
-              duration: 150
-            }}
-            style={{ zIndex: 2 }}>
-            <ChevronsRight size={20} className="text-text-primary dark:text-text-primary-dark" />
-          </MotiView>
-        </XStack>
+      <XStack className="h-full w-full items-center justify-center">
         <AnimatePresence>
-          {!isStreaming && !expanded && (
+          {isStreaming && !expanded && (
             <MotiView
-              key="tips"
-              animate={{ opacity: 1 }}
-              exit={{
-                opacity: 0
-              }}
-              transition={{
-                type: 'timing',
-                duration: 50
-              }}>
-              <Text className="text-text-secondary dark:text-text-secondary-dark text-xs opacity-50">
-                {t('chat.think_expand')}
-              </Text>
-            </MotiView>
-          )}
-          {isStreaming && !expanded && messages.length > 0 && (
-            <MotiView
-              style={{ position: 'absolute', inset: 0 }}
-              key="content"
-              animate={{ opacity: 1 }}
-              exit={{
-                opacity: 0
-              }}
-              transition={{
-                type: 'timing',
-                duration: 50
-              }}>
-              {messages.map((message, index) => {
-                const finalY = containerHeight - (messages.length - index) * lineHeight - 4
-
-                if (index < messages.length - 4) return null
-
-                const opacity = (() => {
-                  const distanceFromLast = messages.length - 1 - index
-                  if (distanceFromLast === 0) return 1
-                  if (distanceFromLast === 1) return 0.7
-                  if (distanceFromLast === 2) return 0.4
-                  return 0.05
-                })()
-
-                return (
-                  <MotiView
-                    key={`${index}-${message}`}
-                    style={{
-                      position: 'absolute',
-                      width: '100%',
-                      height: lineHeight
-                    }}
-                    from={{
-                      opacity: index === messages.length - 1 ? 0 : 1,
-                      translateY: index === messages.length - 1 ? containerHeight : finalY + lineHeight
-                    }}
-                    animate={{
-                      opacity,
-                      translateY: finalY + 8
-                    }}
-                    transition={{
-                      type: 'timing',
-                      duration: 150
-                    }}>
-                    <Text className="text-xs" numberOfLines={1} ellipsizeMode="tail" style={{ lineHeight }}>
-                      {message}
-                    </Text>
-                  </MotiView>
-                )
-              })}
+              key="spinner"
+              from={{ width: 0, height: 0, opacity: 0, marginRight: 0 }}
+              animate={{ width: 20, height: 20, opacity: 1, marginRight: 10 }}
+              exit={{ width: 0, height: 0, opacity: 0, marginRight: 0 }}
+              transition={{ type: 'timing', duration: 150 }}>
+              <Spinner size="sm" color="#0067A8" />
             </MotiView>
           )}
         </AnimatePresence>
-      </YStack>
+        <YStack className="h-full flex-1 gap-1">
+          <XStack className="h-7 items-center justify-between">
+            <Text className="text-text-primary z-10 text-lg font-bold">
+              {t('chat.think', { seconds: Math.floor((block.thinking_millsec || 0) / 1000) })}
+            </Text>
+            <MotiView
+              animate={{
+                rotate: expanded ? '90deg' : '0deg'
+              }}
+              transition={{
+                type: 'timing',
+                duration: 150
+              }}
+              style={{ zIndex: 2 }}>
+              <ChevronsRight size={20} className="text-text-primary" />
+            </MotiView>
+          </XStack>
+          <AnimatePresence>
+            {!isStreaming && !expanded && (
+              <MotiView
+                key="tips"
+                animate={{ opacity: 1 }}
+                exit={{
+                  opacity: 0
+                }}
+                transition={{
+                  type: 'timing',
+                  duration: 50
+                }}>
+                <Text className="text-text-secondary text-xs opacity-50">{t('chat.think_expand')}</Text>
+              </MotiView>
+            )}
+            {isStreaming && !expanded && messages.length > 0 && (
+              <MotiView
+                style={{ position: 'absolute', inset: 0 }}
+                key="content"
+                animate={{ opacity: 1 }}
+                exit={{
+                  opacity: 0
+                }}
+                transition={{
+                  type: 'timing',
+                  duration: 50
+                }}>
+                {messages.map((message, index) => {
+                  const finalY = containerHeight - (messages.length - index) * lineHeight - 4
+
+                  if (index < messages.length - 4) return null
+
+                  const opacity = (() => {
+                    const distanceFromLast = messages.length - 1 - index
+                    if (distanceFromLast === 0) return 1
+                    if (distanceFromLast === 1) return 0.7
+                    if (distanceFromLast === 2) return 0.4
+                    return 0.05
+                  })()
+
+                  return (
+                    <MotiView
+                      key={`${index}-${message}`}
+                      style={{
+                        position: 'absolute',
+                        width: '100%',
+                        height: lineHeight
+                      }}
+                      from={{
+                        opacity: index === messages.length - 1 ? 0 : 1,
+                        translateY: index === messages.length - 1 ? containerHeight : finalY + lineHeight
+                      }}
+                      animate={{
+                        opacity,
+                        translateY: finalY + 8
+                      }}
+                      transition={{
+                        type: 'timing',
+                        duration: 150
+                      }}>
+                      <Text className="text-xs" numberOfLines={1} ellipsizeMode="tail" style={{ lineHeight }}>
+                        {message}
+                      </Text>
+                    </MotiView>
+                  )
+                })}
+              </MotiView>
+            )}
+          </AnimatePresence>
+        </YStack>
+      </XStack>
     </MotiView>
   )
 }

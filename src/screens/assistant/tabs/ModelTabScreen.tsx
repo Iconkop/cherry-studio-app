@@ -1,12 +1,14 @@
-import { RouteProp, useRoute } from '@react-navigation/native'
+import type { RouteProp } from '@react-navigation/native'
+import { useRoute } from '@react-navigation/native'
 import React from 'react'
+import { ActivityIndicator } from 'react-native'
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller'
 
-import { YStack } from '@/componentsV2'
+import { SafeAreaContainer, YStack } from '@/componentsV2'
+import { ModelTabContent } from '@/componentsV2/features/Assistant/ModelTabContent'
 import { useAssistant } from '@/hooks/useAssistant'
 import { useTheme } from '@/hooks/useTheme'
-import { AssistantDetailTabParamList } from '@/navigators/AssistantDetailTabNavigator'
-import { ModelTabContent } from '@/componentsV2/features/Assistant/ModelTabContent'
+import type { AssistantDetailTabParamList } from '@/navigators/AssistantDetailTabNavigator'
 
 type ModelTabRouteProp = RouteProp<AssistantDetailTabParamList, 'ModelTab'>
 
@@ -16,7 +18,13 @@ export default function ModelTabScreen() {
   const { assistant: _assistant } = route.params
   const { assistant, updateAssistant } = useAssistant(_assistant.id)
 
-  if (!assistant) return null
+  if (!assistant) {
+    return (
+      <SafeAreaContainer className="items-center justify-center">
+        <ActivityIndicator />
+      </SafeAreaContainer>
+    )
+  }
 
   return (
     <KeyboardAwareScrollView
@@ -25,7 +33,7 @@ export default function ModelTabScreen() {
       keyboardShouldPersistTaps="handled"
       showsVerticalScrollIndicator={false}
       bottomOffset={10}>
-      <YStack className="flex-1 pt-2.5 px-2">
+      <YStack className="flex-1 px-2 pt-2.5">
         <ModelTabContent assistant={assistant} updateAssistant={updateAssistant} />
       </YStack>
     </KeyboardAwareScrollView>

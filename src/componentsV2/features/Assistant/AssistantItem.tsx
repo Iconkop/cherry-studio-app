@@ -1,24 +1,26 @@
 import { useNavigation } from '@react-navigation/native'
 import { isEmpty } from 'lodash'
-import React, { FC } from 'react'
+import type { FC } from 'react'
+import React from 'react'
 import { useTranslation } from 'react-i18next'
 import { View } from 'react-native'
 
+import type { ContextMenuListProps } from '@/componentsV2/base/ContextMenu'
+import ContextMenu from '@/componentsV2/base/ContextMenu'
+import Text from '@/componentsV2/base/Text'
 import { Trash2 } from '@/componentsV2/icons/LucideIcon'
+import XStack from '@/componentsV2/layout/XStack'
+import YStack from '@/componentsV2/layout/YStack'
 import { useTheme } from '@/hooks/useTheme'
 import { useToast } from '@/hooks/useToast'
 import { getCurrentTopicId } from '@/hooks/useTopic'
-import { deleteAssistantById } from '@/services/AssistantService'
+import { assistantService } from '@/services/AssistantService'
 import { loggerService } from '@/services/LoggerService'
-import { deleteTopicsByAssistantId, isTopicOwnedByAssistant } from '@/services/TopicService'
-import { Assistant } from '@/types/assistant'
-import { HomeNavigationProps } from '@/types/naviagate'
-import { haptic } from '@/utils/haptic'
+import { topicService } from '@/services/TopicService'
+import type { Assistant } from '@/types/assistant'
+import type { DrawerNavigationProps } from '@/types/naviagate'
+
 import EmojiAvatar from './EmojiAvatar'
-import XStack from '@/componentsV2/layout/XStack'
-import YStack from '@/componentsV2/layout/YStack'
-import Text from '@/componentsV2/base/Text'
-import { ContextMenu, ContextMenuListProps } from '@/componentsV2/base/ContextMenu'
 
 const logger = loggerService.withContext('Assistant Item')
 
@@ -29,23 +31,32 @@ interface AssistantItemProps {
 
 const AssistantItem: FC<AssistantItemProps> = ({ assistant, onAssistantPress }) => {
   const { t } = useTranslation()
-  const navigation = useNavigation<HomeNavigationProps>()
+  const navigation = useNavigation<DrawerNavigationProps>()
   const toast = useToast()
   const { isDark } = useTheme()
 
   const handlePress = () => {
-    haptic()
     onAssistantPress(assistant)
   }
 
   const handleDelete = async () => {
     try {
-      if (await isTopicOwnedByAssistant(assistant.id, getCurrentTopicId())) {
-        navigation.navigate('ChatScreen', { topicId: 'new' })
+      const currentTopicId = getCurrentTopicId()
+      const isTopicOwnedByAssistant = await topicService.isTopicOwnedByAssistant(assistant.id, currentTopicId)
+
+      // If deleting current topic, create a new topic with default assistant first
+      if (isTopicOwnedByAssistant) {
+        const defaultAssistant = await assistantService.getAssistant('default')
+        if (defaultAssistant) {
+          const newTopic = await topicService.createTopic(defaultAssistant)
+          await topicService.switchToTopic(newTopic.id)
+          navigation.navigate('Home', { screen: 'ChatScreen', params: { topicId: newTopic.id } })
+          logger.info('Created and switched to new topic before deletion')
+        }
       }
 
-      await deleteAssistantById(assistant.id)
-      await deleteTopicsByAssistantId(assistant.id)
+      await topicService.deleteTopicsByAssistantId(assistant.id)
+      await assistantService.deleteAssistant(assistant.id)
       toast.show(t('message.assistant_deleted'))
     } catch (error) {
       logger.error('Delete Assistant error', error)
@@ -65,8 +76,8 @@ const AssistantItem: FC<AssistantItemProps> = ({ assistant, onAssistantPress }) 
 
   return (
     <ContextMenu borderRadius={16} list={contextMenuItems} onPress={handlePress}>
-      <View className="py-2.5 px-2.5 justify-between items-center rounded-2xl bg-ui-card-background dark:bg-ui-card-background-dark">
-        <XStack className="gap-3.5 flex-1">
+      <View className="bg-ui-card-background items-center justify-between rounded-2xl px-2.5 py-2.5">
+        <XStack className="gap-3.5">
           <EmojiAvatar
             emoji={assistant.emoji}
             size={46}
@@ -74,15 +85,12 @@ const AssistantItem: FC<AssistantItemProps> = ({ assistant, onAssistantPress }) 
             borderWidth={3}
             borderColor={isDark ? '#333333' : '#f7f7f7'}
           />
-          <YStack className="gap-1 flex-1 justify-center">
+          <YStack className="flex-1 justify-center gap-1">
             <Text className="text-sm font-bold" numberOfLines={1} ellipsizeMode="tail">
               {assistant.name}
             </Text>
             {!isEmpty(assistant.prompt) && (
-              <Text
-                ellipsizeMode="tail"
-                numberOfLines={1}
-                className="text-xs  text-text-secondary dark:text-text-secondary-dark">
+              <Text ellipsizeMode="tail" numberOfLines={1} className="text-text-secondary  text-xs">
                 {assistant.prompt}
               </Text>
             )}

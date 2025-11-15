@@ -1,18 +1,19 @@
-import { FC, useState } from 'react'
+import type { FC } from 'react'
+import { useState } from 'react'
 import * as React from 'react'
 import { useTranslation } from 'react-i18next'
 import { TouchableOpacity, useWindowDimensions, View } from 'react-native'
 import ImageView from 'react-native-image-viewing'
 
+import ContextMenu from '@/componentsV2/base/ContextMenu'
+import Image from '@/componentsV2/base/Image'
+import ImageViewerFooterComponent from '@/componentsV2/base/ImageViewerFooterComponent'
+import { Download, ImageOff, Share, X } from '@/componentsV2/icons'
 import { useToast } from '@/hooks/useToast'
 import { shareFile } from '@/services/FileService'
 import { saveImageToGallery } from '@/services/ImageService'
 import { loggerService } from '@/services/LoggerService'
-import { FileMetadata } from '@/types/file'
-import { Download, Share, X, ImageOff } from '@/componentsV2/icons'
-import { ContextMenu } from '@/componentsV2/base/ContextMenu'
-import Image from '@/componentsV2/base/Image'
-import ImageViewerFooterComponent from '@/componentsV2/base/ImageViewerFooterComponent'
+import type { FileMetadata } from '@/types/file'
 
 const logger = loggerService.withContext('Image Item')
 
@@ -87,25 +88,25 @@ const ImageItem: FC<ImageItemProps> = ({ file, allImages = [], onRemove, size, d
           {
             title: t('button.save_image'),
             iOSIcon: 'square.and.arrow.down',
-            androidIcon: <Download size={16} className="text-text-primary dark:text-text-primary-dark" />,
+            androidIcon: <Download size={16} className="text-text-primary" />,
             onSelect: handleSaveImage
           },
           {
             title: t('button.share'),
             iOSIcon: 'square.and.arrow.up',
-            androidIcon: <Share size={16} className="text-text-primary dark:text-text-primary-dark" />,
+            androidIcon: <Share size={16} className="text-text-primary" />,
             onSelect: handleShareImage
           }
         ]}
         borderRadius={10}>
         {imageError ? (
           <View
-            className="bg-gray-5 dark:bg-gray-dark-5 items-center justify-center rounded-2.5"
+            className="bg-gray-5 rounded-2.5 items-center justify-center"
             style={{
               width: imageWidth,
               height: imageWidth
             }}>
-            <ImageOff size={imageWidth * 0.3} className="text-gray-20 dark:text-gray-dark-20" />
+            <ImageOff size={imageWidth * 0.3} className="text-gray-20" />
           </View>
         ) : (
           <Image
@@ -124,15 +125,12 @@ const ImageItem: FC<ImageItemProps> = ({ file, allImages = [], onRemove, size, d
         presentationStyle="fullScreen"
         animationType="slide"
         FooterComponent={({ imageIndex: idx }: any) => (
-          <ImageViewerFooterComponent
-            uri={(imagesForViewer[idx] || file).path}
-            onSaved={() => setIsVisible(false)}
-          />
+          <ImageViewerFooterComponent uri={(imagesForViewer[idx] || file).path} onSaved={() => setIsVisible(false)} />
         )}
       />
       {onRemove && (
-        <TouchableOpacity onPress={handleRemove} hitSlop={5} className="absolute -top-1.5 -right-1.5 rounded-full">
-          <View className="border border-white rounded-full p-0.5">
+        <TouchableOpacity onPress={handleRemove} hitSlop={5} className="absolute -right-1.5 -top-1.5 rounded-full">
+          <View className="rounded-full border border-white p-0.5">
             <X size={14} />
           </View>
         </TouchableOpacity>

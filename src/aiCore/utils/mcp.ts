@@ -1,24 +1,35 @@
 import { type Tool, type ToolSet } from 'ai'
 import { jsonSchema, tool } from 'ai'
-import { JSONSchema7 } from 'json-schema'
+import type { JSONSchema7 } from 'json-schema'
 
 import { loggerService } from '@/services/LoggerService'
 // import { AiSdkTool, ToolCallResult } from '@renderer/aiCore/tools/types'
-import { MCPToolResponse } from '@/types/mcp'
-import { MCPTool } from '@/types/tool'
+import type { MCPToolResponse } from '@/types/mcp'
+import type { MCPTool } from '@/types/tool'
 import { callMCPTool } from '@/utils/mcpTool'
+
+import type { SystemToolKeys } from '../tools/SystemTools'
+import { SystemTool } from '../tools/SystemTools'
 
 const logger = loggerService.withContext('MCP-utils')
 
 // Setup tools configuration based on provided parameters
 export function setupToolsConfig(mcpTools?: MCPTool[]): Record<string, Tool> | undefined {
-  let tools: ToolSet = {}
-
   if (!mcpTools?.length) {
     return undefined
   }
 
-  tools = convertMcpToolsToAiSdkTools(mcpTools)
+  const builtInTools = mcpTools.filter(tool => tool.isBuiltIn)
+  const externalTools = mcpTools.filter(tool => !tool.isBuiltIn)
+
+  const externalToolSet = convertMcpToolsToAiSdkTools(externalTools)
+  const builtInToolSet = convertBuiltInToolsToAiSdkTools(builtInTools)
+
+  // Merge both tool sets
+  const tools: ToolSet = {
+    ...externalToolSet,
+    ...builtInToolSet
+  }
 
   return tools
 }
@@ -86,6 +97,25 @@ export function convertMcpToolsToAiSdkTools(mcpTools: MCPTool[]): ToolSet {
         // }
       }
     })
+  }
+
+  return tools
+}
+
+/**
+ * 将BuiltInTools转化为内置工具格式
+ */
+export function convertBuiltInToolsToAiSdkTools(builtInTools: MCPTool[]): ToolSet {
+  const tools: ToolSet = {}
+
+  for (const builtInTool of builtInTools) {
+    const toolName = builtInTool.name as SystemToolKeys
+
+    if (toolName in SystemTool) {
+      tools[toolName] = SystemTool[toolName]
+    } else {
+      logger.warn(`Built-in tool "${toolName}" not found in SystemTool`)
+    }
   }
 
   return tools

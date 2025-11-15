@@ -1,5 +1,6 @@
-import { SystemProviderId } from '@/types/assistant'
-import { ImageRequireSource } from 'react-native'
+import type { ImageRequireSource } from 'react-native'
+
+import type { SystemProviderId } from '@/types/assistant'
 
 const MODEL_ICONS_DARK = {
   chatgpt: require('@/assets/images/llmIcons/dark/openai.png'),
@@ -111,7 +112,8 @@ const PROVIDER_ICONS_DARK: Record<SystemProviderId | 'default', ImageRequireSour
   baichuan: require('@/assets/images/llmIcons/dark/baichuan.png'),
   nvidia: require('@/assets/images/llmIcons/dark/nvidia.png'),
   perplexity: require('@/assets/images/llmIcons/dark/perplexity.png'),
-  cherryin: require('@/assets/images/llmIcons/dark/cherryIn.png'),
+  cherryin: require('@/assets/images/llmIcons/dark/cherryin.png'),
+  cherryai: require('@/assets/images/llmIcons/dark/cherryai.png'),
   silicon: require('@/assets/images/llmIcons/dark/silicon.png'),
   aihubmix: require('@/assets/images/llmIcons/dark/aihubmix.png'),
   ocoolai: require('@/assets/images/llmIcons/dark/ocoolai.png'),
@@ -167,7 +169,8 @@ const PROVIDER_ICONS_LIGHT: Record<SystemProviderId | 'default', ImageRequireSou
   baichuan: require('@/assets/images/llmIcons/light/baichuan.png'),
   nvidia: require('@/assets/images/llmIcons/light/nvidia.png'),
   perplexity: require('@/assets/images/llmIcons/light/perplexity.png'),
-  cherryin: require('@/assets/images/llmIcons/light/cherryIn.png'),
+  cherryin: require('@/assets/images/llmIcons/light/cherryin.png'),
+  cherryai: require('@/assets/images/llmIcons/light/cherryai.png'),
   silicon: require('@/assets/images/llmIcons/light/silicon.png'),
   aihubmix: require('@/assets/images/llmIcons/light/aihubmix.png'),
   ocoolai: require('@/assets/images/llmIcons/light/ocoolai.png'),

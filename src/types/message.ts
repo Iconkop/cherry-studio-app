@@ -1,12 +1,12 @@
-import { CompletionUsage } from 'openai/resources/completions.mjs'
+import type { CompletionUsage } from 'openai/resources/completions.mjs'
 
-import { Assistant, Metrics, Model, Topic, Usage } from './assistant'
-import { SerializedError } from './error'
-import { FileMetadata } from './file'
-import { GenerateImageResponse } from './image'
-import { KnowledgeReference } from './knowledge'
-import { MCPServer, MCPToolResponse } from './mcp'
-import { WebSearchResponse, WebSearchSource } from './websearch'
+import type { Assistant, Metrics, Model, Topic, Usage } from './assistant'
+import type { SerializedError } from './error'
+import type { FileMetadata } from './file'
+import type { GenerateImageResponse } from './image'
+import type { KnowledgeReference } from './knowledge'
+import type { MCPServer, MCPToolResponse } from './mcp'
+import type { WebSearchResponse, WebSearchSource } from './websearch'
 
 // MessageBlock 类型枚举 - 根据实际API返回特性优化
 export enum MessageBlockType {
@@ -37,8 +37,8 @@ export interface BaseMessageBlock {
   id: string // 块ID
   messageId: string // 所属消息ID
   type: MessageBlockType // 块类型
-  createdAt: string // 创建时间
-  updatedAt?: string // 更新时间
+  createdAt: number // 创建时间
+  updatedAt?: number // 更新时间
   status: MessageBlockStatus // 块状态
   model?: Model // 使用的模型
   metadata?: Record<string, any> // 通用元数据
@@ -153,8 +153,8 @@ export type Message = {
   role: 'user' | 'assistant' | 'system'
   assistantId: string
   topicId: string
-  createdAt: string
-  updatedAt?: string
+  createdAt: number
+  updatedAt?: number
   status: UserMessageStatus | AssistantMessageStatus
 
   // 消息元数据

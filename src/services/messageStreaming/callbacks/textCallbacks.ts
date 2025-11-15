@@ -1,10 +1,12 @@
+import { messageBlockDatabase } from '@database'
+
 import { loggerService } from '@/services/LoggerService'
-import { CitationMessageBlock, MessageBlock, MessageBlockStatus, MessageBlockType } from '@/types/message'
+import type { CitationMessageBlock, MessageBlock } from '@/types/message'
+import { MessageBlockStatus, MessageBlockType } from '@/types/message'
 import { WebSearchSource } from '@/types/websearch'
 import { createMainTextBlock } from '@/utils/messageUtils/create'
 
-import { getBlockById } from '../../../../db/queries/messageBlocks.queries'
-import { BlockManager } from '../BlockManager'
+import type { BlockManager } from '../BlockManager'
 
 const logger = loggerService.withContext('Text Callbacks')
 
@@ -45,7 +47,7 @@ export const createTextCallbacks = (deps: TextCallbacksDependencies) => {
     onTextChunk: async (text: string) => {
       const citationBlockId = getCitationBlockId()
       const citationBlockSource = citationBlockId
-        ? ((await getBlockById(citationBlockId)) as CitationMessageBlock).response?.source
+        ? ((await messageBlockDatabase.getBlockById(citationBlockId)) as CitationMessageBlock).response?.source
         : WebSearchSource.WEBSEARCH
 
       if (text) {

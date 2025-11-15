@@ -8,8 +8,8 @@ import { File as ExpoFile } from 'expo-file-system'
 
 import { isVisionModel } from '@/config/models'
 import { loggerService } from '@/services/LoggerService'
-import { Model } from '@/types/assistant'
-import { FileMessageBlock, ImageMessageBlock, Message, ThinkingMessageBlock } from '@/types/message'
+import type { Model } from '@/types/assistant'
+import type { FileMessageBlock, ImageMessageBlock, Message, ThinkingMessageBlock } from '@/types/message'
 import { findFileBlocks, findImageBlocks, findThinkingBlocks, getMainTextContent } from '@/utils/messageUtils/find'
 
 import { convertFileBlockToFilePart, convertFileBlockToTextPart } from './fileProcessor'
@@ -61,7 +61,7 @@ async function convertMessageToUserModelMessage(
           const image = new ExpoFile(imageBlock.file.path)
           parts.push({
             type: 'image',
-            image: image.base64(),
+            image: await image.base64(),
             mediaType: image.type || undefined
           })
         } catch (error) {

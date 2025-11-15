@@ -3,7 +3,7 @@ import Svg, { Path } from 'react-native-svg'
 
 import { useTheme } from '@/hooks/useTheme'
 
-import { IconProps } from '../types'
+import type { IconProps } from '../types'
 
 export function EditIcon(props: IconProps) {
   const { isDark } = useTheme()

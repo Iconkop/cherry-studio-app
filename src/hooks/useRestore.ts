@@ -2,13 +2,16 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch } from 'react-redux'
 
+import type { RestoreStep } from '@/componentsV2/features/SettingsScreen/RestoreProgressModal'
+import { databaseMaintenance } from '@/database/DatabaseMaintenance'
 import { useDialog } from '@/hooks/useDialog'
-import { ProgressUpdate, restore, RestoreStepId } from '@/services/BackupService'
+import { resetAppInitializationState, runAppDataMigrations } from '@/services/AppInitializationService'
+import type { ProgressUpdate, RestoreStepId, StepStatus } from '@/services/BackupService'
+import { restore } from '@/services/BackupService'
 import { loggerService } from '@/services/LoggerService'
-import { FileMetadata } from '@/types/file'
+import type { FileMetadata } from '@/types/file'
 import { uuid } from '@/utils'
 import { getFileType } from '@/utils/file'
-import { RestoreStep } from '@/componentsV2/features/SettingsScreen/RestoreProgressModal'
 const logger = loggerService.withContext('useRestore')
 
 // 定义步骤配置类型
@@ -19,6 +22,10 @@ export interface StepConfig {
 
 // 预定义的步骤配置
 export const RESTORE_STEP_CONFIGS = {
+  RECEIVE_FILE: {
+    id: 'receive_file' as RestoreStepId,
+    titleKey: 'settings.data.restore.steps.receive_file'
+  },
   RESTORE_SETTINGS: {
     id: 'restore_settings' as RestoreStepId,
     titleKey: 'settings.data.restore.steps.restore_settings'
@@ -35,6 +42,13 @@ export const DEFAULT_RESTORE_STEPS: StepConfig[] = [
   RESTORE_STEP_CONFIGS.RESTORE_MESSAGES
 ]
 
+// Landrop 的步骤组合（包含文件接收）
+export const LANDROP_RESTORE_STEPS: StepConfig[] = [
+  RESTORE_STEP_CONFIGS.RECEIVE_FILE,
+  RESTORE_STEP_CONFIGS.RESTORE_SETTINGS,
+  RESTORE_STEP_CONFIGS.RESTORE_MESSAGES
+]
+
 const createStepsFromConfig = (stepConfigs: StepConfig[], t: (key: string) => string): RestoreStep[] => {
   return stepConfigs.map(config => ({
     id: config.id,
@@ -45,6 +59,7 @@ const createStepsFromConfig = (stepConfigs: StepConfig[], t: (key: string) => st
 
 export interface UseRestoreOptions {
   stepConfigs?: StepConfig[]
+  clearBeforeRestore?: boolean
   customRestoreFunction?: (
     file: Omit<FileMetadata, 'md5'>,
     onProgress: (update: ProgressUpdate) => void
@@ -56,7 +71,7 @@ export function useRestore(options: UseRestoreOptions = {}) {
   const dispatch = useDispatch()
   const dialog = useDialog()
 
-  const { stepConfigs = DEFAULT_RESTORE_STEPS, customRestoreFunction = restore } = options
+  const { stepConfigs = DEFAULT_RESTORE_STEPS, clearBeforeRestore = false, customRestoreFunction = restore } = options
 
   const [isModalOpen, setModalOpen] = useState(false)
   const [restoreSteps, setRestoreSteps] = useState<RestoreStep[]>(createStepsFromConfig(stepConfigs, t))
@@ -91,7 +106,7 @@ export function useRestore(options: UseRestoreOptions = {}) {
     size: file.size || 0,
     ext: file.name.split('.').pop() || '',
     type: getFileType(file.name.split('.').pop() || ''),
-    created_at: new Date().toISOString(),
+    created_at: Date.now(),
     count: 1
   })
 
@@ -121,13 +136,37 @@ export function useRestore(options: UseRestoreOptions = {}) {
     })
   }
 
-  const startRestore = async (file: { name: string; uri: string; size?: number; mimeType?: string }) => {
+  const startRestore = async (
+    file: { name: string; uri: string; size?: number; mimeType?: string },
+    skipModalSetup = false
+  ) => {
     if (!validateFile(file)) return
 
-    // 重置状态并打开模态框
-    setRestoreSteps(createStepsFromConfig(stepConfigs, t))
-    setOverallStatus('running')
-    setModalOpen(true)
+    // 清除现有数据（如果启用）
+    if (clearBeforeRestore) {
+      try {
+        logger.info('Clearing existing data before restore...')
+        await databaseMaintenance.resetDatabase()
+        resetAppInitializationState()
+        await runAppDataMigrations()
+        logger.info('Existing data cleared successfully')
+      } catch (error) {
+        logger.error('Failed to clear existing data:', error)
+        dialog.open({
+          type: 'error',
+          title: t('common.error'),
+          content: t('settings.data.restore.clear_error')
+        })
+        return
+      }
+    }
+
+    // 重置状态并打开模态框（除非 skipModalSetup 为 true）
+    if (!skipModalSetup) {
+      setRestoreSteps(createStepsFromConfig(stepConfigs, t))
+      setOverallStatus('running')
+      setModalOpen(true)
+    }
 
     // Use setTimeout to ensure the modal renders before starting the restore process
     setTimeout(async () => {
@@ -142,11 +181,23 @@ export function useRestore(options: UseRestoreOptions = {}) {
     }, 400)
   }
 
+  const updateStepStatus = (stepId: RestoreStepId, status: StepStatus, error?: string) => {
+    setRestoreSteps(prevSteps => prevSteps.map(step => (step.id === stepId ? { ...step, status, error } : step)))
+  }
+
+  const openModal = () => {
+    setRestoreSteps(createStepsFromConfig(stepConfigs, t))
+    setOverallStatus('running')
+    setModalOpen(true)
+  }
+
   return {
     isModalOpen,
     restoreSteps,
     overallStatus,
     startRestore,
-    closeModal: () => setModalOpen(false)
+    closeModal: () => setModalOpen(false),
+    updateStepStatus,
+    openModal
   }
 }

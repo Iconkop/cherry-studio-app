@@ -1,15 +1,15 @@
 import { BottomSheetBackdrop, BottomSheetModal, BottomSheetView } from '@gorhom/bottom-sheet'
+import { Button, Spinner } from 'heroui-native'
 import React, { forwardRef, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { BackHandler, View } from 'react-native'
-import { Button, Spinner } from 'heroui-native'
 
-import { useTheme } from '@/hooks/useTheme'
-import { ApiStatus } from '@/types/assistant'
-import { ChevronsRight } from '@/componentsV2/icons'
-import YStack from '@/componentsV2/layout/YStack'
-import XStack from '@/componentsV2/layout/XStack'
 import Text from '@/componentsV2/base/Text'
+import { ChevronsRight } from '@/componentsV2/icons'
+import XStack from '@/componentsV2/layout/XStack'
+import YStack from '@/componentsV2/layout/YStack'
+import { useTheme } from '@/hooks/useTheme'
+import type { ApiStatus } from '@/types/assistant'
 
 interface WebSearchApiCheckSheetProps {
   onStartModelCheck: () => void
@@ -53,26 +53,22 @@ export const WebSearchApiCheckSheet = forwardRef<BottomSheetModal, WebSearchApiC
         onDismiss={() => setIsVisible(false)}
         onChange={index => setIsVisible(index >= 0)}>
         <BottomSheetView>
-          <YStack className="items-center pt-2.5 pb-7 px-5 gap-2.5">
+          <YStack className="items-center gap-2.5 px-5 pb-7 pt-2.5">
             <XStack className="w-full items-center justify-center">
-              <Text className="text-2xl text-text-primary dark:text-text-primary-dark">
-                {t('settings.provider.api_check.title')}
-              </Text>
+              <Text className="text-text-primary text-2xl">{t('settings.provider.api_check.title')}</Text>
             </XStack>
             <XStack className="w-full items-center justify-center">
               <Button
                 variant="tertiary"
-                className="h-11 w-1/2 rounded-lg bg-green-10 border-green-20 dark:bg-green-dark-10 dark:border-green-dark-20"
+                className="border-green-20 bg-green-10 h-11 w-1/2 rounded-lg"
                 isDisabled={checkApiStatus === 'processing'}
                 onPress={onStartModelCheck}>
-                <Button.LabelContent>
+                <Button.Label>
                   {checkApiStatus === 'processing' && (
                     <View>
-                      <XStack className="gap-2.5 w-full items-center justify-center">
+                      <XStack className="w-full items-center justify-center gap-2.5">
                         <Spinner size="sm" color="success" />
-                        <Text className="text-lg font-bold text-green-100 dark:text-green-dark-100">
-                          {t('button.checking')}
-                        </Text>
+                        <Text className="text-lg font-bold text-green-100">{t('button.checking')}</Text>
                       </XStack>
                     </View>
                   )}
@@ -80,10 +76,8 @@ export const WebSearchApiCheckSheet = forwardRef<BottomSheetModal, WebSearchApiC
                   {checkApiStatus === 'idle' && (
                     <View>
                       <XStack className="w-full items-center justify-between">
-                        <Text className="text-lg font-bold text-green-100 dark:text-green-dark-100">
-                          {t('button.start_check_model')}
-                        </Text>
-                        <ChevronsRight className="text-green-100 dark:text-green-dark-100" />
+                        <Text className="text-lg font-bold text-green-100">{t('button.start_check_model')}</Text>
+                        <ChevronsRight className="text-green-100" />
                       </XStack>
                     </View>
                   )}
@@ -91,13 +85,11 @@ export const WebSearchApiCheckSheet = forwardRef<BottomSheetModal, WebSearchApiC
                   {checkApiStatus === 'success' && (
                     <View>
                       <XStack className="w-full items-center justify-center">
-                        <Text className="text-lg font-bold text-green-100 dark:text-green-dark-100">
-                          {t('button.success')}
-                        </Text>
+                        <Text className="text-lg font-bold text-green-100">{t('button.success')}</Text>
                       </XStack>
                     </View>
                   )}
-                </Button.LabelContent>
+                </Button.Label>
               </Button>
             </XStack>
           </YStack>

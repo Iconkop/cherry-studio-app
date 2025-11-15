@@ -1,8 +1,8 @@
 import React from 'react'
-import { View, TouchableOpacity, useWindowDimensions } from 'react-native'
+import { TouchableOpacity, useWindowDimensions, View } from 'react-native'
 import ImageView from 'react-native-image-viewing'
 
-import { Image , ImageViewerFooterComponent } from '@/componentsV2'
+import { Image, ImageViewerFooterComponent } from '@/componentsV2'
 import { ImageOff } from '@/componentsV2/icons/LucideIcon'
 
 export interface MarkdownImageProps {
@@ -19,13 +19,13 @@ const MarkdownImage: React.FC<MarkdownImageProps> = ({ uri, alt }) => {
   const imageWidth = (screenWidth - 24) * 0.3
 
   return (
-    <View className="w-1/3 aspect-square">
+    <View className="aspect-square w-1/3">
       <TouchableOpacity activeOpacity={0.8} onPress={() => !imageError && setVisible(true)} disabled={imageError}>
         {imageError ? (
           <View
-            className="bg-gray-5 dark:bg-gray-dark-5 items-center justify-center rounded-2.5"
+            className="bg-gray-5 rounded-2.5 items-center justify-center"
             style={{ width: imageWidth, height: imageWidth }}>
-            <ImageOff size={imageWidth * 0.3} className="text-gray-20 dark:text-gray-dark-20" />
+            <ImageOff size={imageWidth * 0.3} className="text-gray-20" />
           </View>
         ) : (
           <Image

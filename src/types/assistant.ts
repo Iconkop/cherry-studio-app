@@ -1,9 +1,10 @@
-import OpenAI from 'openai'
+import type OpenAI from 'openai'
 
-import { StreamTextParams } from './aiCoretypes'
-import { Chunk } from './chunk'
-import { Message } from './message'
-import { WebSearchProvider } from './websearch'
+import type { StreamTextParams } from './aiCoretypes'
+import type { Chunk } from './chunk'
+import type { MCPServer } from './mcp'
+import type { Message } from './message'
+import type { WebSearchProvider } from './websearch'
 
 export type Assistant = {
   id: string
@@ -25,6 +26,7 @@ export type Assistant = {
   knowledgeRecognition?: 'off' | 'on'
   tags?: string[] // 助手标签
   group?: string[] // 助手分组
+  mcpServers?: MCPServer[]
 }
 
 const ThinkModelTypes = [
@@ -96,12 +98,9 @@ export type Topic = {
   id: string
   assistantId: string
   name: string
-  createdAt: string
-  updatedAt: string
-  messages: Message[]
-  pinned?: boolean
-  prompt?: string
-  isNameManuallyEdited?: boolean
+  createdAt: number
+  updatedAt: number
+  isLoading?: boolean
 }
 
 export type ModelPricing = {
@@ -135,6 +134,16 @@ export type Model = {
   endpoint_type?: EndpointType
   supported_endpoint_types?: EndpointType[]
   supported_text_delta?: boolean
+}
+
+export type ModelHealthStatus = 'testing' | 'healthy' | 'unhealthy' | 'idle'
+
+export type ModelHealth = {
+  modelId: string
+  status: ModelHealthStatus
+  latency?: number // Response time in seconds
+  lastChecked?: number
+  error?: string
 }
 
 export type ModelType = 'text' | 'vision' | 'embedding' | 'reasoning' | 'function_calling' | 'web_search' | 'rerank'
@@ -260,6 +269,7 @@ export type EndpointType = 'openai' | 'openai-response' | 'anthropic' | 'gemini'
 
 export const SystemProviderIds = {
   cherryin: 'cherryin',
+  cherryai: 'cherryai',
   silicon: 'silicon',
   aihubmix: 'aihubmix',
   ocoolai: 'ocoolai',

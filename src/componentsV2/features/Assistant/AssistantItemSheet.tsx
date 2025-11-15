@@ -1,25 +1,22 @@
 import { BottomSheetBackdrop, BottomSheetModal, BottomSheetScrollView } from '@gorhom/bottom-sheet'
 import { BlurView } from 'expo-blur'
-import { ImpactFeedbackStyle } from 'expo-haptics'
+import { Button, Divider } from 'heroui-native'
 import React, { forwardRef, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { BackHandler, Platform, TouchableOpacity, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { Button, Divider } from 'heroui-native'
 
 import { Text, XStack, YStack } from '@/componentsV2'
-import { UnionPlusIcon, ModelIcon } from '@/componentsV2/icons'
+import { ModelIcon, UnionPlusIcon } from '@/componentsV2/icons'
 import { Settings2, X } from '@/componentsV2/icons/LucideIcon'
-import { useTheme as useCustomTheme } from '@/hooks/useTheme'
+import { useTheme } from '@/hooks/useTheme'
 import { useToast } from '@/hooks/useToast'
-import { saveAssistant } from '@/services/AssistantService'
-import { createNewTopic } from '@/services/TopicService'
-import { Assistant } from '@/types/assistant'
+import { useCurrentTopic } from '@/hooks/useTopic'
+import { assistantService } from '@/services/AssistantService'
+import { topicService } from '@/services/TopicService'
+import type { Assistant } from '@/types/assistant'
 import { uuid } from '@/utils'
 import { formateEmoji } from '@/utils/formats'
-import { haptic } from '@/utils/haptic'
-import { setCurrentTopicId } from '@/store/topic'
-import { useAppDispatch } from '@/store'
 
 import EmojiAvatar from './EmojiAvatar'
 import GroupTag from './GroupTag'
@@ -38,9 +35,9 @@ interface AssistantItemSheetProps {
 const AssistantItemSheet = forwardRef<BottomSheetModal, AssistantItemSheetProps>(
   ({ assistant, source, onEdit, onChatNavigation, actionButton }, ref) => {
     const { t } = useTranslation()
-    const { isDark } = useCustomTheme()
+    const { isDark } = useTheme()
     const { bottom } = useSafeAreaInsets()
-    const dispatch = useAppDispatch()
+    const { switchTopic } = useCurrentTopic()
     const toast = useToast()
     const [isVisible, setIsVisible] = useState(false)
 
@@ -75,24 +72,23 @@ const AssistantItemSheet = forwardRef<BottomSheetModal, AssistantItemSheetProps>
           id: uuid(),
           type: 'external'
         }
-        await saveAssistant(newAssistant)
+        await assistantService.createAssistant(newAssistant)
       }
 
-      const topic = await createNewTopic(newAssistant)
-      dispatch(setCurrentTopicId(topic.id))
+      const topic = await topicService.createTopic(newAssistant)
+      await switchTopic(topic.id)
       await onChatNavigation(topic.id)
       ;(ref as React.RefObject<BottomSheetModal>)?.current?.dismiss()
     }
 
     const handleAddAssistant = async () => {
       if (assistant) {
-        await saveAssistant({
+        await assistantService.createAssistant({
           ...assistant,
           id: uuid(),
           type: 'external'
         })
         ;(ref as React.RefObject<BottomSheetModal>)?.current?.dismiss()
-        haptic(ImpactFeedbackStyle.Medium)
         toast.show(t('assistants.market.add.success', { assistant_name: assistant.name }))
       }
     }
@@ -117,9 +113,9 @@ const AssistantItemSheet = forwardRef<BottomSheetModal, AssistantItemSheetProps>
         onDismiss={() => setIsVisible(false)}
         onChange={index => setIsVisible(index >= 0)}>
         {!assistant ? null : (
-          <YStack className="flex-1 gap-10 relative">
+          <YStack className="relative flex-1 gap-10">
             {/* Background blur emoji */}
-            <XStack className="w-full h-[200px] rounded-[30px] absolute top-0 left-0 right-0 overflow-hidden flex-wrap">
+            <XStack className="absolute left-0 right-0 top-0 h-[200px] w-full flex-wrap overflow-hidden rounded-[30px]">
               {Array.from({ length: 70 }).map((_, index) => (
                 <View key={index} className="w-[9.99%] scale-150 items-center justify-center">
                   <Text className="text-[20px]" style={{ opacity: emojiOpacity }}>
@@ -153,13 +149,13 @@ const AssistantItemSheet = forwardRef<BottomSheetModal, AssistantItemSheetProps>
               }}
               onPress={() => (ref as React.RefObject<BottomSheetModal>)?.current?.dismiss()}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-              <X className="w-4 h-4" />
+              <X className="h-4 w-4" />
             </TouchableOpacity>
 
             {/* Main Content */}
             <YStack className="flex-1 gap-4 px-6">
               {/* Header with emoji and groups */}
-              <YStack className="justify-center items-center gap-5">
+              <YStack className="items-center justify-center gap-5">
                 <View className="mt-5">
                   <EmojiAvatar
                     emoji={assistant.emoji}
@@ -168,27 +164,22 @@ const AssistantItemSheet = forwardRef<BottomSheetModal, AssistantItemSheetProps>
                     borderColor={isDark ? '#333333' : '#ffffff'}
                   />
                 </View>
-                <Text className="text-[22px] font-bold text-center text-text-primary dark:text-text-primary-dark">
-                  {assistant.name}
-                </Text>
+                <Text className="text-text-primary text-center text-[22px] font-bold">{assistant.name}</Text>
                 {assistant.group && assistant.group.length > 0 && (
-                  <XStack className="gap-2.5 flex-wrap justify-center">
+                  <XStack className="flex-wrap justify-center gap-2.5">
                     {assistant.group.map((group, index) => (
                       <GroupTag
                         key={index}
                         group={group}
-                        className="px-2 text-xs bg-green-10 dark:bg-green-dark-10 text-green-100 dark:text-green-dark-100 border-[0.5px] border-green-20 dark:border-green-dark-20"
+                        className="border-green-20 bg-green-10 border-[0.5px] px-2 text-xs text-green-100"
                       />
                     ))}
                   </XStack>
                 )}
                 {assistant.defaultModel && (
-                  <XStack className="gap-0.5 items-center justify-center">
+                  <XStack className="items-center justify-center gap-0.5">
                     <ModelIcon model={assistant.defaultModel} size={14} />
-                    <Text
-                      className="text-sm text-text-primary dark:text-text-primary-dark"
-                      numberOfLines={1}
-                      ellipsizeMode="tail">
+                    <Text className="text-text-primary text-sm" numberOfLines={1} ellipsizeMode="tail">
                       {assistant.defaultModel.name}
                     </Text>
                   </XStack>
@@ -205,24 +196,16 @@ const AssistantItemSheet = forwardRef<BottomSheetModal, AssistantItemSheetProps>
                   {/* Description */}
                   {assistant.description && (
                     <YStack className="gap-1">
-                      <Text className="leading-5 text-lg font-bold text-text-primary dark:text-text-primary-dark">
-                        {t('common.description')}
-                      </Text>
-                      <Text className="leading-5 text-text-secondary dark:text-text-secondary-dark">
-                        {assistant.description}
-                      </Text>
+                      <Text className="text-text-primary text-lg font-bold leading-5">{t('common.description')}</Text>
+                      <Text className="text-text-secondary leading-5">{assistant.description}</Text>
                     </YStack>
                   )}
 
                   {/* Additional details could go here */}
                   {assistant.prompt && (
                     <YStack className="gap-1">
-                      <Text className="leading-5 text-lg font-bold text-text-primary dark:text-text-primary-dark">
-                        {t('common.prompt')}
-                      </Text>
-                      <Text className="text-base leading-5 text-text-primary dark:text-text-primary-dark">
-                        {assistant.prompt}
-                      </Text>
+                      <Text className="text-text-primary text-lg font-bold leading-5">{t('common.prompt')}</Text>
+                      <Text className="text-text-primary text-base leading-5">{assistant.prompt}</Text>
                     </YStack>
                   )}
                 </YStack>
@@ -230,29 +213,29 @@ const AssistantItemSheet = forwardRef<BottomSheetModal, AssistantItemSheetProps>
             </YStack>
 
             {/* Footer positioned absolutely at the bottom */}
-            <XStack className="px-6 justify-between items-center gap-4 flex-shrink-0" style={{ bottom }}>
+            <XStack className="flex-shrink-0 items-center justify-between gap-4 px-6" style={{ bottom }}>
               {source === 'builtIn' && (
                 <Button variant="ghost" isIconOnly onPress={handleAddAssistant}>
-                  <Button.LabelContent>
+                  <Button.Label>
                     <UnionPlusIcon size={30} />
-                  </Button.LabelContent>
+                  </Button.Label>
                 </Button>
               )}
               {source === 'external' && (
                 <Button variant="ghost" isIconOnly onPress={handleEditAssistant}>
-                  <Button.LabelContent>
+                  <Button.Label>
                     <Settings2 size={30} />
-                  </Button.LabelContent>
+                  </Button.Label>
                 </Button>
               )}
               <Button
-                className="bg-green-10 dark:bg-green-dark-10 border-green-20 dark:border-green-dark-20 rounded-[30px] py-2.5 px-5 flex-1"
+                className="border-green-20 bg-green-10 flex-1 rounded-[30px] px-5 py-2.5"
                 onPress={actionButton?.onPress || handleChatPress}>
-                <Button.LabelContent>
-                  <Text className="text-green-100 dark:text-green-dark-100 text-[17px] font-bold">
+                <Button.Label>
+                  <Text className="text-[17px] font-bold text-green-100">
                     {actionButton?.text || t('assistants.market.button.chat')}
                   </Text>
-                </Button.LabelContent>
+                </Button.Label>
               </Button>
             </XStack>
           </YStack>

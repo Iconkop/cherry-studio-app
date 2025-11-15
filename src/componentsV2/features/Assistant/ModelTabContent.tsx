@@ -1,20 +1,22 @@
-import { BottomSheetModal } from '@gorhom/bottom-sheet'
+import type { BottomSheetModal } from '@gorhom/bottom-sheet'
+import { Button, Switch } from 'heroui-native'
 import { MotiView } from 'moti'
 import React, { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { ChevronRight } from '@/componentsV2/icons/LucideIcon'
-import { isReasoningModel } from '@/config/models'
-import { DEFAULT_CONTEXTCOUNT, DEFAULT_MAX_TOKENS, DEFAULT_TEMPERATURE } from '@/constants'
-import { Assistant, AssistantSettings, Model } from '@/types/assistant'
-
-import { Button, Switch } from 'heroui-native'
-import { ReasoningSheet } from '@/componentsV2/features/Sheet/ReasoningSheet'
 import Text from '@/componentsV2/base/Text'
+import TextField from '@/componentsV2/base/TextField'
+import { ReasoningSheet } from '@/componentsV2/features/Sheet/ReasoningSheet'
+import { ChevronRight } from '@/componentsV2/icons/LucideIcon'
 import Group from '@/componentsV2/layout/Group'
 import Row from '@/componentsV2/layout/Row'
-import TextField from '@/componentsV2/base/TextField'
+import XStack from '@/componentsV2/layout/XStack'
 import YStack from '@/componentsV2/layout/YStack'
+import { isReasoningModel } from '@/config/models'
+import { DEFAULT_CONTEXTCOUNT, DEFAULT_MAX_TOKENS, DEFAULT_TEMPERATURE } from '@/constants'
+import type { Assistant, AssistantSettings, Model } from '@/types/assistant'
+import { getBaseModelName } from '@/utils/naming'
+
 import ModelSheet from '../Sheet/ModelSheet'
 
 interface ModelTabContentProps {
@@ -78,37 +80,35 @@ export function ModelTabContent({ assistant, updateAssistant }: ModelTabContentP
       }}>
       <Button
         variant="tertiary"
-        className="border-0 justify-between bg-ui-card-background dark:bg-ui-card-background-dark rounded-xl"
+        className="bg-ui-card-background justify-between rounded-xl border-0"
         onPress={handleModelPress}>
-        <Button.LabelContent className="flex-1 justify-between items-center flex-row">
-          {model.length > 0 ? (
-            <>
-              <Text className="text-base" numberOfLines={1} ellipsizeMode="tail">
-                {t(`provider.${model[0].provider}`)}
-              </Text>
-              <Text className="text-base max-w-[80%]" numberOfLines={1} ellipsizeMode="tail">
-                {model[0].name}
-              </Text>
-            </>
-          ) : (
+        {model.length > 0 ? (
+          <XStack className="flex-1 flex-row items-center justify-between">
             <Text className="text-base" numberOfLines={1} ellipsizeMode="tail">
-              {t('settings.models.empty')}
+              {t(`provider.${model[0].provider}`)}
             </Text>
-          )}
-        </Button.LabelContent>
-        <Button.EndContent>
-          <ChevronRight size={14} />
-        </Button.EndContent>
+            <Text className="max-w-[70%] text-base" numberOfLines={1} ellipsizeMode="middle">
+              {getBaseModelName(model[0].name)}
+            </Text>
+          </XStack>
+        ) : (
+          <Button.Label>
+            <Text className="text-base" numberOfLines={1} ellipsizeMode="tail">
+              {t('settings.models.empty.label')}
+            </Text>
+          </Button.Label>
+        )}
+        <ChevronRight size={14} />
       </Button>
       <Group>
         <Row>
           <Text>{t('assistants.settings.temperature')}</Text>
           <TextField className="min-w-[60px]">
             <TextField.Input
-              className="h-[25px] text-xs leading-[14.4px] text-center"
+              className="rounded-xl"
               value={temperatureInput}
               onChangeText={setTemperatureInput}
-              onBlur={() => {
+              onEndEditing={() => {
                 const parsedValue = parseFloat(temperatureInput)
 
                 if (!isNaN(parsedValue) && parsedValue >= 0 && parsedValue <= 1) {
@@ -125,10 +125,10 @@ export function ModelTabContent({ assistant, updateAssistant }: ModelTabContentP
           <Text>{t('assistants.settings.context')}</Text>
           <TextField className="min-w-[60px]">
             <TextField.Input
-              className="h-[25px] text-xs leading-[14.4px] text-center"
+              className="rounded-xl"
               value={contextInput}
               onChangeText={setContextInput}
-              onBlur={() => {
+              onEndEditing={() => {
                 const parsedValue = parseInt(contextInput)
 
                 if (!isNaN(parsedValue) && parsedValue >= 0 && parsedValue <= 30) {
@@ -167,10 +167,10 @@ export function ModelTabContent({ assistant, updateAssistant }: ModelTabContentP
             <Text>{t('assistants.settings.max_tokens_value')}</Text>
             <TextField className="min-w-[60px]">
               <TextField.Input
-                className="h-[25px] text-xs leading-[14.4px] text-center"
+                className="h-[25px] text-center text-xs leading-[14.4px]"
                 value={maxTokensInput}
                 onChangeText={setMaxTokensInput}
-                onBlur={() => {
+                onEndEditing={() => {
                   const parsedValue = parseInt(maxTokensInput)
 
                   if (!isNaN(parsedValue) && parsedValue > 0) {
@@ -188,20 +188,20 @@ export function ModelTabContent({ assistant, updateAssistant }: ModelTabContentP
         {isReasoningModel(model[0]) && (
           <Button
             variant="tertiary"
-            className="border-0 py-3 pl-4 pr-5 justify-between bg-transparent rounded-xl"
+            className="justify-between rounded-xl border-0 bg-transparent py-3 pl-4 pr-5"
             onPress={handleReasoningPress}>
-            <Button.LabelContent className="flex-1 justify-between items-center flex-row">
-              <Text className="flex-1">{t('assistants.settings.reasoning')}</Text>
+            <Button.Label className="flex-1 flex-row items-center justify-between">
+              <XStack>
+                <Text className="flex-1">{t('assistants.settings.reasoning.label')}</Text>
 
-              <YStack className="justify-end">
-                <Text className="text-sm bg-green-10 dark:bg-green-dark-10 border-green-20 dark:border-green-dark-20 text-green-100 dark:text-green-dark-100 border-[0.5px] py-[2px] px-2 rounded-lg">
-                  {t(`assistants.settings.reasoning.${settings.reasoning_effort || 'off'}`)}
-                </Text>
-              </YStack>
-            </Button.LabelContent>
-            <Button.EndContent>
-              <ChevronRight size={14} />
-            </Button.EndContent>
+                <YStack className="justify-end">
+                  <Text className="border-green-20 bg-green-10 rounded-lg border-[0.5px] px-2 py-[2px] text-sm text-green-100">
+                    {t(`assistants.settings.reasoning.${settings.reasoning_effort || 'off'}`)}
+                  </Text>
+                </YStack>
+              </XStack>
+            </Button.Label>
+            <ChevronRight size={14} />
           </Button>
         )}
       </Group>

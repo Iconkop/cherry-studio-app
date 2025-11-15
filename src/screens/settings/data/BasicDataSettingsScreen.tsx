@@ -1,9 +1,11 @@
+import { databaseMaintenance } from '@database'
 import { useNavigation } from '@react-navigation/native'
 import { reloadAppAsync } from 'expo'
 import * as DocumentPicker from 'expo-document-picker'
 import { Paths } from 'expo-file-system'
 import * as IntentLauncher from 'expo-intent-launcher'
 import * as Sharing from 'expo-sharing'
+import { delay } from 'lodash'
 import React, { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Platform } from 'react-native'
@@ -21,16 +23,15 @@ import {
   XStack,
   YStack
 } from '@/componentsV2'
-import { FileText, Folder, FolderOpen, RotateCcw, Trash2 } from '@/componentsV2/icons/LucideIcon'
+import { FileText, Folder, FolderOpen, RotateCcw, Save, Trash2 } from '@/componentsV2/icons/LucideIcon'
 import { useDialog } from '@/hooks/useDialog'
 import { DEFAULT_RESTORE_STEPS, useRestore } from '@/hooks/useRestore'
-import { getCacheDirectorySize, resetCacheDirectory } from '@/services/FileService'
+import { backup } from '@/services/BackupService'
+import { getCacheDirectorySize, resetCacheDirectory, shareFile } from '@/services/FileService'
 import { loggerService } from '@/services/LoggerService'
 import { persistor } from '@/store'
-import { NavigationProps } from '@/types/naviagate'
+import type { NavigationProps } from '@/types/naviagate'
 import { formatFileSize } from '@/utils/file'
-
-import { resetDatabase } from '../../../../db/queries/reset.queries'
 const logger = loggerService.withContext('BasicDataSettingsScreen')
 
 interface SettingItemConfig {
@@ -52,9 +53,11 @@ export default function BasicDataSettingsScreen() {
   const { t } = useTranslation()
   const dialog = useDialog()
   const [isResetting, setIsResetting] = useState(false)
+  const [isBackup, setIsBackup] = useState(false)
   const [cacheSize, setCacheSize] = useState<string>('--')
   const { isModalOpen, restoreSteps, overallStatus, startRestore, closeModal } = useRestore({
-    stepConfigs: DEFAULT_RESTORE_STEPS
+    stepConfigs: DEFAULT_RESTORE_STEPS,
+    clearBeforeRestore: true
   })
 
   const loadCacheSize = async () => {
@@ -69,18 +72,39 @@ export default function BasicDataSettingsScreen() {
 
   useEffect(() => {
     loadCacheSize()
-  }, [])
+  }, [isBackup])
+
+  const handleBackup = async () => {
+    try {
+      setIsBackup(true)
+      const backupUri = await backup()
+      setIsBackup(false)
+      await shareFile(backupUri)
+    } catch (error) {
+      logger.error('handleBackup', error as Error)
+    }
+  }
 
   const handleRestore = async () => {
-    const result = await DocumentPicker.getDocumentAsync({ type: 'application/zip' })
-    if (result.canceled) return
+    dialog.open({
+      type: 'warning',
+      title: t('settings.data.restore.title'),
+      content: t('settings.data.restore.confirm_warning'),
+      confirmText: t('common.confirm'),
+      cancelText: t('common.cancel'),
+      showLoading: true,
+      onConFirm: async () => {
+        const result = await DocumentPicker.getDocumentAsync({ type: 'application/zip' })
+        if (result.canceled) return
 
-    const asset = result.assets[0]
-    await startRestore({
-      name: asset.name,
-      uri: asset.uri,
-      size: asset.size,
-      mimeType: asset.mimeType
+        const asset = result.assets[0]
+        await startRestore({
+          name: asset.name,
+          uri: asset.uri,
+          size: asset.size,
+          mimeType: asset.mimeType
+        })
+      }
     })
   }
 
@@ -93,23 +117,24 @@ export default function BasicDataSettingsScreen() {
       content: t('settings.data.reset_warning'),
       confirmText: t('common.confirm'),
       cancelText: t('common.cancel'),
+      showLoading: true,
       onConFirm: async () => {
         setIsResetting(true)
 
         try {
-          await resetDatabase() // reset sqlite
+          await databaseMaintenance.resetDatabase() // reset sqlite
           await persistor.purge() // reset redux
           await resetCacheDirectory() // reset cache
+
+          delay(async () => await reloadAppAsync(), 200)
         } catch (error) {
+          setIsResetting(false)
           dialog.open({
             type: 'error',
             title: t('common.error'),
             content: t('settings.data.data_reset.error')
           })
           logger.error('handleDataReset', error as Error)
-        } finally {
-          setIsResetting(false)
-          await reloadAppAsync()
         }
       }
     })
@@ -120,8 +145,8 @@ export default function BasicDataSettingsScreen() {
 
     dialog.open({
       type: 'warning',
-      title: t('settings.data.reset'),
-      content: t('settings.data.reset_warning'),
+      title: t('settings.data.clear_cache.title'),
+      content: t('settings.data.clear_cache.warning'),
       confirmText: t('common.confirm'),
       cancelText: t('common.cancel'),
       onConFirm: async () => {
@@ -134,7 +159,7 @@ export default function BasicDataSettingsScreen() {
           dialog.open({
             type: 'error',
             title: t('common.error'),
-            content: t('settings.data.data_reset.error')
+            content: t('settings.data.clear_cache.error')
           })
           logger.error('handleDataReset', error as Error)
         } finally {
@@ -198,14 +223,13 @@ export default function BasicDataSettingsScreen() {
     {
       title: t('settings.data.title'),
       items: [
-        // todo
-        // {
-        //   title: t('settings.data.backup'),
-        //   icon: <Save size={24} />,
-        //   onPress: () => {}
-        // },
         {
-          title: t('settings.data.recovery'),
+          title: t('settings.data.backup'),
+          icon: <Save size={24} />,
+          onPress: handleBackup
+        },
+        {
+          title: t('settings.data.restore.title'),
           icon: <Folder size={24} />,
           onPress: handleRestore
         },
@@ -242,11 +266,11 @@ export default function BasicDataSettingsScreen() {
   ]
 
   return (
-    <SafeAreaContainer style={{ flex: 1 }}>
+    <SafeAreaContainer>
       <HeaderBar title={t('settings.data.basic_title')} />
 
       <Container>
-        <YStack className="gap-6 flex-1">
+        <YStack className="flex-1 gap-6">
           {settingsItems.map(group => (
             <GroupContainer key={group.title} title={group.title}>
               {group.items.map(item => (
@@ -294,8 +318,8 @@ function SettingItem({ title, screen, icon, subtitle, danger, onPress, disabled 
       <XStack className="items-center gap-3">
         {icon}
         <YStack>
-          <Text className={danger ? 'text-red-500 dark:text-red-500' : ''}>{title}</Text>
-          {subtitle && <Text size="sm">{subtitle}</Text>}
+          <Text className={danger ? 'text-red-500' : ''}>{title}</Text>
+          {subtitle && <Text className="text-sm">{subtitle}</Text>}
         </YStack>
       </XStack>
       {screen && <RowRightArrow />}

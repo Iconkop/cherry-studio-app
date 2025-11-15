@@ -1,7 +1,12 @@
-import { BottomSheetModal } from '@gorhom/bottom-sheet'
-import React, { FC, useMemo } from 'react'
+import type { BottomSheetModal } from '@gorhom/bottom-sheet'
+import { delay } from 'lodash'
+import type { FC } from 'react'
+import React, { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
+import { View } from 'react-native'
 
+import type { SelectionSheetItem } from '@/componentsV2/base/SelectionSheet'
+import SelectionSheet from '@/componentsV2/base/SelectionSheet'
 import {
   MdiLightbulbAutoOutline,
   MdiLightbulbOffOutline,
@@ -10,10 +15,8 @@ import {
   MdiLightbulbOn50,
   MdiLightbulbOn80
 } from '@/componentsV2/icons'
-import { getThinkModelType, MODEL_SUPPORTED_OPTIONS, isDoubaoThinkingAutoModel } from '@/config/models'
-import { Assistant, Model, ThinkingOption } from '@/types/assistant'
-import { View } from 'react-native'
-import SelectionSheet, { SelectionSheetItem } from '@/componentsV2/base/SelectionSheet'
+import { getThinkModelType, isDoubaoThinkingAutoModel, MODEL_SUPPORTED_OPTIONS } from '@/config/models'
+import type { Assistant, Model, ThinkingOption } from '@/types/assistant'
 
 interface ReasoningSheetProps {
   model: Model
@@ -62,11 +65,11 @@ export const ReasoningSheet: FC<ReasoningSheetProps> = ({ model, assistant, upda
     return MODEL_SUPPORTED_OPTIONS[modelType]
   }, [model, modelType])
 
-  const onValueChange = (option?: ThinkingOption) => {
+  const onValueChange = async (option?: ThinkingOption) => {
     const isEnabled = option !== undefined && option !== 'off'
 
     if (!isEnabled) {
-      updateAssistant({
+      await updateAssistant({
         ...assistant,
         settings: {
           ...assistant.settings,
@@ -76,7 +79,7 @@ export const ReasoningSheet: FC<ReasoningSheetProps> = ({ model, assistant, upda
         }
       })
     } else {
-      updateAssistant({
+      await updateAssistant({
         ...assistant,
         settings: {
           ...assistant.settings,
@@ -86,14 +89,13 @@ export const ReasoningSheet: FC<ReasoningSheetProps> = ({ model, assistant, upda
         }
       })
     }
-
-    ref.current?.dismiss()
+    delay(() => ref.current?.dismiss(), 50)
   }
 
   const sheetOptions: SelectionSheetItem[] = supportedOptions.map(option => ({
     key: option,
     label: t(`assistants.settings.reasoning.${option}`),
-    icon: <View className="w-5 h-5">{createThinkingIcon(option)}</View>,
+    icon: <View className="h-5 w-5">{createThinkingIcon(option)}</View>,
     isSelected: currentReasoningEffort === option,
     onSelect: () => onValueChange(option)
   }))

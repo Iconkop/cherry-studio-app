@@ -1,14 +1,14 @@
-import OpenAI from 'openai'
+import type OpenAI from 'openai'
 
 import { getProviderByModel } from '@/services/ProviderService'
-import {
-  isSystemProviderId,
+import type {
   Model,
   ReasoningEffortConfig,
   SystemProviderId,
   ThinkingModelType,
   ThinkingOptionConfig
 } from '@/types/assistant'
+import { isSystemProviderId } from '@/types/assistant'
 import { isUserSelectedModelType } from '@/utils/model'
 import { getLowerBaseModelName } from '@/utils/naming'
 
@@ -54,6 +54,10 @@ export function isRerankModel(model: Model): boolean {
 }
 
 export function isFreeModel(model: Model) {
+  if (model.provider === 'cherryai') {
+    return true
+  }
+
   return (model.id + model.name).toLocaleLowerCase().includes('free')
 }
 

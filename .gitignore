@@ -50,8 +50,8 @@ yarn-error.*
 app-example
 
 # build
-ios
 android
+ios
 *.ipa
 *.apk
 
@@ -62,7 +62,6 @@ android
 
 # Cheyne
 *.txt
-app.config.ts
 package-lock.json
 
 COMMIT_MESSAGE.md
@@ -71,4 +70,10 @@ screenshot.png
 TOP_ENTRY_IMPLEMENTATION.md
 .cursor/
 
-.vscode/
+.claude/
+.codex/
+.gemini/
+.qwen/
+
+# coverage
+coverage/

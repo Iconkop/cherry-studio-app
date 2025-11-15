@@ -1,16 +1,15 @@
 import { BottomSheetBackdrop, BottomSheetModal, useBottomSheetScrollableCreator } from '@gorhom/bottom-sheet'
 import { LegendList } from '@legendapp/list'
-import { ImpactFeedbackStyle } from 'expo-haptics'
+import { cn } from 'heroui-native'
 import React, { useEffect, useState } from 'react'
 import { BackHandler, TouchableOpacity, View } from 'react-native'
 
-import { useTheme } from '@/hooks/useTheme'
-import { haptic } from '@/utils/haptic'
 import { Check } from '@/componentsV2/icons'
-import Text from '../Text'
 import XStack from '@/componentsV2/layout/XStack'
 import YStack from '@/componentsV2/layout/YStack'
-import { cn } from 'heroui-native'
+import { useTheme } from '@/hooks/useTheme'
+
+import Text from '../Text'
 
 export interface SelectionSheetItem {
   label: React.ReactNode | string
@@ -29,16 +28,23 @@ export interface SelectionSheetProps {
   snapPoints?: string[]
   ref: React.RefObject<BottomSheetModal | null>
   placeholder?: string
+  shouldDismiss?: boolean
 }
 
 /**
  * 用于在BottomSheetModal中显示列表
  */
 
-const SelectionSheet: React.FC<SelectionSheetProps> = ({ items, emptyContent, snapPoints = [], ref, placeholder }) => {
+const SelectionSheet: React.FC<SelectionSheetProps> = ({
+  items,
+  emptyContent,
+  snapPoints = [],
+  ref,
+  placeholder,
+  shouldDismiss = true
+}) => {
   const { isDark } = useTheme()
   const [isVisible, setIsVisible] = useState(false)
-  // Link LegendList with BottomSheet gestures
   const BottomSheetLegendListScrollable = useBottomSheetScrollableCreator()
 
   useEffect(() => {
@@ -54,8 +60,10 @@ const SelectionSheet: React.FC<SelectionSheetProps> = ({ items, emptyContent, sn
   }, [ref, isVisible])
 
   const handleSelect = (item: SelectionSheetItem) => {
-    ref.current?.dismiss()
-    haptic(ImpactFeedbackStyle.Medium)
+    if (shouldDismiss) {
+      ref.current?.dismiss()
+    }
+
     item.onSelect?.()
   }
 
@@ -65,7 +73,7 @@ const SelectionSheet: React.FC<SelectionSheetProps> = ({ items, emptyContent, sn
       typeof item.label === 'string' ? (
         <Text
           className={cn(
-            `text-base ${item.isSelected ? 'text-green-100 dark:text-green-dark-100' : 'text-text-primary dark:text-text-primary-dark'}`,
+            `text-base ${item.isSelected ? 'text-green-100' : 'text-text-primary'}`,
             item.color && !item.isSelected ? item.color : undefined
           )}>
           {item.label}
@@ -77,7 +85,7 @@ const SelectionSheet: React.FC<SelectionSheetProps> = ({ items, emptyContent, sn
       typeof item.description === 'string' ? (
         <Text
           className={cn(
-            `text-[11px] opacity-70 flex-1 ${item.isSelected ? 'text-green-100 dark:text-green-dark-100' : 'text-text-secondary dark:text-text-secondary-dark'}`,
+            `flex-1 text-[11px] opacity-70 ${item.isSelected ? 'text-green-100' : 'text-text-secondary'}`,
             item.color && !item.isSelected ? item.color : undefined
           )}
           numberOfLines={1}
@@ -91,19 +99,17 @@ const SelectionSheet: React.FC<SelectionSheetProps> = ({ items, emptyContent, sn
       <TouchableOpacity onPress={() => handleSelect(item)} activeOpacity={0.5}>
         <XStack
           className={cn(
-            `items-center gap-2.5 px-3.5 py-3 rounded-lg border ${
-              item.isSelected
-                ? 'border-green-20 bg-green-10 dark:border-green-dark-20 dark:bg-green-dark-10'
-                : 'border-transparent bg-ui-card-background dark:bg-ui-card-background-dark'
+            `items-center gap-2.5 rounded-lg border px-3.5 py-3 ${
+              item.isSelected ? 'border-green-20 bg-green-10' : 'bg-ui-card-background border-transparent'
             }`,
             item.backgroundColor && !item.isSelected ? item.backgroundColor : undefined
           )}>
           {iconElement}
-          <XStack className="flex-1 gap-2.5 items-center justify-between">
+          <XStack className="flex-1 items-center justify-between gap-2.5">
             {labelElement}
             {descriptionElement}
           </XStack>
-          {item.isSelected && <Check size={20} className="text-green-100 dark:text-green-dark-100" />}
+          {item.isSelected && <Check size={20} className="text-green-100" />}
         </XStack>
       </TouchableOpacity>
     )
@@ -111,10 +117,6 @@ const SelectionSheet: React.FC<SelectionSheetProps> = ({ items, emptyContent, sn
 
   const keyExtractor = (item: SelectionSheetItem, index: number) =>
     item.key?.toString() || item.id?.toString() || item.label?.toString() || index.toString()
-
-  if (items.length === 0 && emptyContent) {
-    return <YStack className="pb-7 px-4 gap-2.5">{emptyContent}</YStack>
-  }
 
   const renderBackdrop = (props: any) => (
     <BottomSheetBackdrop {...props} appearsOnIndex={0} disappearsOnIndex={-1} opacity={0.5} pressBehavior="close" />
@@ -144,16 +146,14 @@ const SelectionSheet: React.FC<SelectionSheetProps> = ({ items, emptyContent, sn
         ItemSeparatorComponent={() => <YStack className="h-2.5" />}
         contentContainerStyle={{ paddingBottom: 40, paddingHorizontal: 16 }}
         renderScrollComponent={BottomSheetLegendListScrollable}
-        drawDistance={1000}
         ListHeaderComponent={
           placeholder ? (
             <View className="px-4 pb-2">
-              <Text className="text-sm text-text-secondary dark:text-text-secondary-dark text-center opacity-60">
-                {placeholder}
-              </Text>
+              <Text className="text-text-secondary text-center text-sm opacity-60">{placeholder}</Text>
             </View>
           ) : undefined
         }
+        ListEmptyComponent={emptyContent ? <YStack className="gap-2.5 px-4 pb-7">{emptyContent}</YStack> : undefined}
         recycleItems
       />
     </BottomSheetModal>

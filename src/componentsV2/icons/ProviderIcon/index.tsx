@@ -1,13 +1,13 @@
 import { File, Paths } from 'expo-file-system'
 import React, { useEffect, useState } from 'react'
+import type { ImageRequireSource } from 'react-native'
 
-import { DEFAULT_ICONS_STORAGE } from '@/constants/storage'
-import { useTheme } from '@/hooks/useTheme'
-import { Provider } from '@/types/assistant'
-import { getProviderIcon } from '@/utils/icons/'
 import Image from '@/componentsV2/base/Image'
 import YStack from '@/componentsV2/layout/YStack'
-import { ImageRequireSource } from 'react-native'
+import { DEFAULT_ICONS_STORAGE } from '@/constants/storage'
+import { useTheme } from '@/hooks/useTheme'
+import type { Provider } from '@/types/assistant'
+import { getProviderIcon } from '@/utils/icons/'
 
 interface ProviderIconProps {
   provider: Provider
@@ -24,20 +24,26 @@ export const ProviderIcon: React.FC<ProviderIconProps> = ({ provider, size, clas
       if (provider.isSystem) {
         setIconUri(getProviderIcon(provider.id, isDark))
       } else {
-        const file = new File(Paths.join(DEFAULT_ICONS_STORAGE, `${provider.id}.jpg`))
+        // Try multiple image formats since users can upload jpg, jpeg, or png
+        const possibleExtensions = ['png', 'jpg', 'jpeg']
+        let foundUri = ''
 
-        if (file.exists) {
-          setIconUri(file.uri)
-        } else {
-          setIconUri('')
+        for (const ext of possibleExtensions) {
+          const file = new File(Paths.join(DEFAULT_ICONS_STORAGE, `${provider.id}.${ext}`))
+          if (file.exists) {
+            foundUri = file.uri
+            break
+          }
         }
+
+        setIconUri(foundUri)
       }
     }
 
     loadIcon()
   }, [provider.id, provider.isSystem, isDark])
 
-  const sizeClass = size ? `w-[${size}px] h-[${size}px]` : 'w-5 h-5'
+  const sizeClass = size ? `w-[${size}px] h-[${size}px]` : 'w-6 h-6'
   const finalClassName = className ? `${sizeClass} ${className}` : sizeClass
 
   if (!iconUri) {

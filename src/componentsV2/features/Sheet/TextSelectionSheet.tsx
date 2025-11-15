@@ -3,12 +3,12 @@ import React, { forwardRef, useEffect, useImperativeHandle, useRef, useState } f
 import { useTranslation } from 'react-i18next'
 import { BackHandler, Platform, TouchableOpacity } from 'react-native'
 
-import { useTheme } from '@/hooks/useTheme'
 import Text from '@/componentsV2/base/Text'
-import YStack from '@/componentsV2/layout/YStack'
-import XStack from '@/componentsV2/layout/XStack'
 import TextField from '@/componentsV2/base/TextField'
 import { X } from '@/componentsV2/icons'
+import XStack from '@/componentsV2/layout/XStack'
+import YStack from '@/componentsV2/layout/YStack'
+import { useTheme } from '@/hooks/useTheme'
 
 interface TextSelectionSheetProps {
   content: string
@@ -23,9 +23,9 @@ export interface TextSelectionSheetRef {
 function SelectableText({ children }) {
   if (Platform.OS === 'ios') {
     return (
-      <TextField className="h-full w-full">
+      <TextField className="w-full">
         <TextField.Input
-          className="h-full w-full text-sm leading-6 border-0 px-4 rounded-none"
+          className="w-full rounded-none border-0 px-4 py-4 text-sm leading-6"
           multiline
           editable={false}
           value={children}
@@ -33,7 +33,11 @@ function SelectableText({ children }) {
       </TextField>
     )
   } else {
-    return <Text className="text-sm leading-6">{children}</Text>
+    return (
+      <Text className="px-4 py-4 text-sm leading-6" selectable>
+        {children}
+      </Text>
+    )
   }
 }
 
@@ -80,7 +84,7 @@ const TextSelectionSheet = forwardRef<TextSelectionSheetRef, TextSelectionSheetP
       onDismiss={() => setIsVisible(false)}
       onChange={index => setIsVisible(index >= 0)}>
       <YStack className="flex-1">
-        <XStack className="items-center justify-between border-b border-black/10 px-4 pb-4 dark:border-white/10">
+        <XStack className="items-center justify-between border-b border-black/10 px-4 pb-4">
           <Text className="text-base font-bold">{t('common.select_text')}</Text>
           <TouchableOpacity
             style={{
@@ -95,9 +99,7 @@ const TextSelectionSheet = forwardRef<TextSelectionSheetRef, TextSelectionSheetP
         </XStack>
         <BottomSheetScrollView
           contentContainerStyle={{
-            flex: 1,
-            height: '100%',
-            width: '100%'
+            flexGrow: 1
           }}>
           <SelectableText>{content}</SelectableText>
         </BottomSheetScrollView>

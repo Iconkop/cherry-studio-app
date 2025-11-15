@@ -1,22 +1,26 @@
 import { BottomSheetBackdrop, BottomSheetModal, BottomSheetTextInput, BottomSheetView } from '@gorhom/bottom-sheet'
-import React, { forwardRef, useEffect, useState } from 'react'
-import { useTranslation } from 'react-i18next'
-import { BackHandler, Keyboard, TouchableWithoutFeedback } from 'react-native'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Button } from 'heroui-native'
-import { useTheme } from '@/hooks/useTheme'
-import { loggerService } from '@/services/LoggerService'
-import { Model, Provider } from '@/types/assistant'
-import { getDefaultGroupName } from '@/utils/naming'
-import YStack from '@/componentsV2/layout/YStack'
+import React, { forwardRef, useEffect, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import { BackHandler, Keyboard, TouchableWithoutFeedback, View } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
+
 import Text from '@/componentsV2/base/Text'
 import XStack from '@/componentsV2/layout/XStack'
+import YStack from '@/componentsV2/layout/YStack'
+import { useTheme } from '@/hooks/useTheme'
+import { loggerService } from '@/services/LoggerService'
+import type { Model, Provider } from '@/types/assistant'
+import { getDefaultGroupName } from '@/utils/naming'
 
 const logger = loggerService.withContext('AddModelSheet')
 
+// Stable handler to prevent re-renders
+const stopPropagation = () => true
+
 interface AddModelSheetProps {
   provider?: Provider
-  updateProvider: (provider: Provider) => Promise<void>
+  updateProvider: (updates: Partial<Omit<Provider, 'id'>>) => Promise<void>
 }
 
 export const AddModelSheet = forwardRef<BottomSheetModal, AddModelSheetProps>(({ provider, updateProvider }, ref) => {
@@ -64,13 +68,8 @@ export const AddModelSheet = forwardRef<BottomSheetModal, AddModelSheetProps>(({
       group: modelGroup
     }
 
-    const updatedProvider: Provider = {
-      ...provider,
-      models: [...provider.models, newModel]
-    }
-
     try {
-      await updateProvider(updatedProvider)
+      await updateProvider({ models: [...provider.models, newModel] })
       logger.info('Successfully added model:', newModel)
       ;(ref as React.RefObject<BottomSheetModal>)?.current?.dismiss()
     } catch (error) {
@@ -86,15 +85,18 @@ export const AddModelSheet = forwardRef<BottomSheetModal, AddModelSheetProps>(({
     <BottomSheetBackdrop {...props} appearsOnIndex={0} disappearsOnIndex={-1} opacity={0.5} pressBehavior="close" />
   )
 
-  const inputStyle = {
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    borderRadius: 16,
-    backgroundColor: isDark ? '#19191C' : '#ffffffff',
-    borderWidth: 0.5,
-    borderColor: '#a0a1b066',
-    color: isDark ? '#f9f9f9ff' : '#202020ff'
-  }
+  const inputStyle = useMemo(
+    () => ({
+      paddingHorizontal: 14,
+      paddingVertical: 12,
+      borderRadius: 16,
+      backgroundColor: isDark ? '#19191C' : '#ffffffff',
+      borderWidth: 0.5,
+      borderColor: '#a0a1b066',
+      color: isDark ? '#f9f9f9ff' : '#202020ff'
+    }),
+    [isDark]
+  )
 
   return (
     <BottomSheetModal
@@ -115,64 +117,62 @@ export const AddModelSheet = forwardRef<BottomSheetModal, AddModelSheetProps>(({
       onChange={index => setIsVisible(index >= 0)}>
       <BottomSheetView style={{ paddingBottom: insets.bottom }}>
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-          <YStack className="items-center pb-7 px-5 gap-2.5">
+          <YStack className="items-center gap-2.5 px-5 pb-7">
             <XStack className="w-full items-center justify-center">
-              <Text className="text-xl">{t('settings.models.add.model')}</Text>
+              <Text className="text-xl">{t('settings.models.add.model.label')}</Text>
             </XStack>
-            <YStack className="w-full gap-6 justify-center items-center ">
+            <YStack className="w-full items-center justify-center gap-6">
               {/* Model ID Input */}
               <YStack className="w-full gap-2">
                 <XStack className="gap-2 px-3">
-                  <Text className="text-text-secondary dark:text-text-secondary-dark">
-                    {t('settings.models.add.model.id')}
-                  </Text>
-                  <Text size="lg" className="text-red-500 dark:text-red-500">
-                    *
-                  </Text>
+                  <Text className="text-text-secondary">{t('settings.models.add.model.id.label')}</Text>
+                  <Text className="text-red-500">*</Text>
                 </XStack>
-                <BottomSheetTextInput
-                  style={inputStyle}
-                  placeholder={t('settings.models.add.model.id.placeholder')}
-                  value={modelId}
-                  onChangeText={setModelId}
-                />
+                <View onStartShouldSetResponder={stopPropagation}>
+                  <BottomSheetTextInput
+                    style={inputStyle}
+                    placeholder={t('settings.models.add.model.id.placeholder')}
+                    value={modelId}
+                    onChangeText={setModelId}
+                  />
+                </View>
               </YStack>
               {/* Model Name Input */}
               <YStack className="w-full gap-2">
                 <XStack className="gap-2 px-3">
-                  <Text className="text-text-secondary dark:text-text-secondary-dark">
-                    {t('settings.models.add.model.name')}
-                  </Text>
+                  <Text className="text-text-secondary">{t('settings.models.add.model.name.label')}</Text>
                 </XStack>
-                <BottomSheetTextInput
-                  style={inputStyle}
-                  placeholder={t('settings.models.add.model.name.placeholder')}
-                  value={modelName}
-                  onChangeText={setModelName}
-                />
+                <View onStartShouldSetResponder={stopPropagation}>
+                  <BottomSheetTextInput
+                    style={inputStyle}
+                    placeholder={t('settings.models.add.model.name.placeholder')}
+                    value={modelName}
+                    onChangeText={setModelName}
+                  />
+                </View>
               </YStack>
               {/* Model Group Input */}
               <YStack className="w-full gap-2">
                 <XStack className="gap-2 px-3">
-                  <Text className="text-text-secondary dark:text-text-secondary-dark">
-                    {t('settings.models.add.model.group')}
-                  </Text>
+                  <Text className="text-text-secondary">{t('settings.models.add.model.group.label')}</Text>
                 </XStack>
-                <BottomSheetTextInput
-                  style={inputStyle}
-                  placeholder={t('settings.models.add.model.group.placeholder')}
-                  value={modelGroup}
-                  onChangeText={setModelGroup}
-                />
+                <View onStartShouldSetResponder={stopPropagation}>
+                  <BottomSheetTextInput
+                    style={inputStyle}
+                    placeholder={t('settings.models.add.model.group.placeholder')}
+                    value={modelGroup}
+                    onChangeText={setModelGroup}
+                  />
+                </View>
               </YStack>
               <Button
                 variant="tertiary"
-                className="h-11 w-4/6 rounded-2xl bg-green-10 border-green-20 dark:bg-green-dark-10 dark:border-green-dark-20"
+                className="border-green-20 bg-green-10 h-11 w-4/6 rounded-2xl"
                 onPress={handleAddModel}
                 isDisabled={!modelId.trim()}>
-                <Button.LabelContent>
-                  <Text className="text-green-100 dark:text-green-dark-100">{t('settings.models.add.model')}</Text>
-                </Button.LabelContent>
+                <Button.Label>
+                  <Text className="text-green-100">{t('settings.models.add.model.label')}</Text>
+                </Button.Label>
               </Button>
             </YStack>
           </YStack>

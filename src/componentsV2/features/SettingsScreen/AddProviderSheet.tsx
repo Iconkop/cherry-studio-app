@@ -1,39 +1,57 @@
 import { BottomSheetBackdrop, BottomSheetModal, BottomSheetTextInput, BottomSheetView } from '@gorhom/bottom-sheet'
 import { File, Paths } from 'expo-file-system'
-import React, { forwardRef, useEffect, useState } from 'react'
-import { useTranslation } from 'react-i18next'
-import { BackHandler, Keyboard, TouchableWithoutFeedback } from 'react-native'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Button } from 'heroui-native'
+import React, { forwardRef, useEffect, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import { BackHandler, Keyboard, TouchableWithoutFeedback, View } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
+import { Text, XStack, YStack } from '@/componentsV2'
 import { DEFAULT_ICONS_STORAGE } from '@/constants/storage'
 import { useDialog } from '@/hooks/useDialog'
 import { useTheme } from '@/hooks/useTheme'
 import { uploadFiles } from '@/services/FileService'
 import { loggerService } from '@/services/LoggerService'
-import { saveProvider } from '@/services/ProviderService'
-import { Provider, ProviderType } from '@/types/assistant'
-import { FileMetadata } from '@/types/file'
+import { providerService } from '@/services/ProviderService'
+import type { Provider, ProviderType } from '@/types/assistant'
+import type { FileMetadata } from '@/types/file'
 import { uuid } from '@/utils'
-import { YStack, XStack, Text } from '@/componentsV2'
+
 import { ProviderIconButton } from './ProviderIconButton'
 import { ProviderSelect } from './ProviderSelect'
 
 const logger = loggerService.withContext('ProviderSheet')
 
+// Stable handler to prevent re-renders
+const stopPropagation = () => true
+
 interface ProviderSheetProps {
   mode?: 'add' | 'edit'
   editProvider?: Provider
-  onSave?: (provider: Provider) => void
 }
 
 export const AddProviderSheet = forwardRef<BottomSheetModal, ProviderSheetProps>(
-  ({ mode = 'add', editProvider, onSave }, ref) => {
+  ({ mode = 'add', editProvider }, ref) => {
     const { t } = useTranslation()
     const { isDark } = useTheme()
     const insets = useSafeAreaInsets()
     const dialog = useDialog()
     const [providerId, setProviderId] = useState(() => editProvider?.id || uuid())
+
+    // Memoized input style to prevent re-renders
+    const inputStyle = useMemo(
+      () => ({
+        height: 40,
+        paddingHorizontal: 12,
+        paddingVertical: 12,
+        borderRadius: 6,
+        borderWidth: 1,
+        borderColor: isDark ? '#2f2f2f' : '#e5e5e5',
+        backgroundColor: isDark ? '#1a1a1a' : '#ffffff',
+        color: isDark ? '#a1a1a1' : '#737373'
+      }),
+      [isDark]
+    )
 
     const [providerName, setProviderName] = useState(editProvider?.name || '')
     const [selectedProviderType, setSelectedProviderType] = useState<ProviderType | undefined>(
@@ -41,6 +59,7 @@ export const AddProviderSheet = forwardRef<BottomSheetModal, ProviderSheetProps>
     )
     const [selectedImageFile, setSelectedImageFile] = useState<Omit<FileMetadata, 'md5'> | null>(null)
     const [isVisible, setIsVisible] = useState(false)
+    const [existingIconUri, setExistingIconUri] = useState<string | undefined>(undefined)
 
     // 当 editProvider 变化时，更新表单字段
     useEffect(() => {
@@ -54,6 +73,21 @@ export const AddProviderSheet = forwardRef<BottomSheetModal, ProviderSheetProps>
         setSelectedProviderType(undefined)
       }
     }, [editProvider])
+
+    // 在编辑模式下查找现有的图标文件
+    useEffect(() => {
+      if (mode === 'edit' && providerId) {
+        const possibleExtensions = ['png', 'jpg', 'jpeg']
+        for (const ext of possibleExtensions) {
+          const file = new File(Paths.join(DEFAULT_ICONS_STORAGE, `${providerId}.${ext}`))
+          if (file.exists) {
+            setExistingIconUri(file.uri)
+            return
+          }
+        }
+        setExistingIconUri(undefined)
+      }
+    }, [mode, providerId])
 
     useEffect(() => {
       if (!isVisible) return
@@ -106,8 +140,13 @@ export const AddProviderSheet = forwardRef<BottomSheetModal, ProviderSheetProps>
       try {
         await uploadProviderImage(selectedImageFile)
         const providerData = createProviderData()
-        await saveProvider(providerData)
-        onSave?.(providerData)
+
+        if (mode === 'add') {
+          await providerService.createProvider(providerData)
+        } else {
+          await providerService.updateProvider(providerData.id, providerData)
+        }
+
         ;(ref as React.RefObject<BottomSheetModal>)?.current?.dismiss()
       } catch (error) {
         logger.error('handleSaveProvider', error as Error)
@@ -123,16 +162,6 @@ export const AddProviderSheet = forwardRef<BottomSheetModal, ProviderSheetProps>
           setSelectedImageFile(null)
         }
       }
-    }
-
-    const inputStyle = {
-      paddingHorizontal: 14,
-      paddingVertical: 12,
-      borderRadius: 16,
-      backgroundColor: isDark ? '#19191C' : '#ffffffff',
-      borderWidth: 0.5,
-      borderColor: '#a0a1b066',
-      color: isDark ? '#f9f9f9ff' : '#202020ff'
     }
 
     return (
@@ -154,50 +183,52 @@ export const AddProviderSheet = forwardRef<BottomSheetModal, ProviderSheetProps>
         onChange={index => setIsVisible(index >= 0)}>
         <BottomSheetView style={{ paddingBottom: insets.bottom }}>
           <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-            <YStack className="items-center pb-7 px-5 gap-7">
+            <YStack className="items-center gap-7 px-5 pb-7">
               <XStack className="w-full items-center justify-center">
                 <Text className="text-xl">
                   {mode === 'edit' ? t('settings.provider.edit.title') : t('settings.provider.add.title')}
                 </Text>
               </XStack>
-              <YStack className="w-full gap-6 justify-center items-center">
+              <YStack className="w-full items-center justify-center gap-6">
                 <ProviderIconButton
                   providerId={providerId}
-                  iconUri={
-                    mode === 'edit' ? new File(Paths.join(DEFAULT_ICONS_STORAGE, `${providerId}.jpg`)).uri : undefined
-                  }
+                  iconUri={mode === 'edit' ? existingIconUri : undefined}
                   onImageSelected={handleImageSelected}
                 />
                 <YStack className="w-full gap-2">
-                  <XStack className="gap-2 px-3">
-                    <Text className="text-text-secondary dark:text-text-secondary-dark">
-                      {t('settings.provider.add.name')}
-                    </Text>
-                    <Text size="lg" className="text-red-500 dark:text-red-500">
-                      *
-                    </Text>
+                  <XStack className="gap-2">
+                    <Text className="text-text-secondary">{t('settings.provider.add.name.label')}</Text>
+                    <Text className="text-red-500">*</Text>
                   </XStack>
-                  <BottomSheetTextInput
-                    style={inputStyle}
-                    placeholder={t('settings.provider.add.name.placeholder')}
-                    value={providerName}
-                    onChangeText={setProviderName}
+                  <View onStartShouldSetResponder={stopPropagation}>
+                    <BottomSheetTextInput
+                      style={inputStyle}
+                      placeholder={t('settings.provider.add.name.placeholder')}
+                      value={providerName}
+                      onChangeText={setProviderName}
+                    />
+                  </View>
+                </YStack>
+                <YStack className="w-full gap-2">
+                  <XStack className="gap-2">
+                    <Text className="text-text-secondary">{t('settings.provider.add.type')}</Text>
+                  </XStack>
+                  <ProviderSelect
+                    value={selectedProviderType}
+                    onValueChange={setSelectedProviderType}
+                    placeholder={t('settings.provider.add.type')}
                   />
                 </YStack>
-                <ProviderSelect
-                  value={selectedProviderType}
-                  onValueChange={setSelectedProviderType}
-                  placeholder={t('settings.provider.add.type')}
-                />
+
                 <Button
                   variant="tertiary"
-                  className="h-11 w-4/6 rounded-lg bg-green-10 border-green-20 dark:bg-green-dark-10 dark:border-green-dark-20"
+                  className="border-green-20 bg-green-10 h-11 w-4/6 rounded-lg"
                   onPress={handleSaveProvider}>
-                  <Button.LabelContent>
-                    <Text className="text-green-100 dark:text-green-dark-100">
+                  <Button.Label>
+                    <Text className="text-green-100">
                       {mode === 'edit' ? t('common.save') : t('settings.provider.add.title')}
                     </Text>
-                  </Button.LabelContent>
+                  </Button.Label>
                 </Button>
               </YStack>
             </YStack>

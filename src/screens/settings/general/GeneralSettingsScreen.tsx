@@ -16,14 +16,14 @@ import {
 } from '@/componentsV2'
 import { languagesOptions } from '@/config/languages'
 import { useTheme } from '@/hooks/useTheme'
-import { GeneralSettingsNavigationProps } from '@/types/naviagate'
+import type { GeneralSettingsNavigationProps } from '@/types/naviagate'
 import { storage } from '@/utils'
 
 export default function GeneralSettingsScreen() {
   const { t, i18n } = useTranslation()
 
   const [language, setLanguage] = useState('zh-CN')
-  const { activeTheme } = useTheme()
+  const { themeSetting } = useTheme()
 
   const navigation = useNavigation<GeneralSettingsNavigationProps>()
 
@@ -52,7 +52,7 @@ export default function GeneralSettingsScreen() {
     <SafeAreaContainer className="flex-1">
       <HeaderBar title={t('settings.general.title')} />
       <Container>
-        <YStack className="gap-6 flex-1">
+        <YStack className="flex-1 gap-6">
           {/* Display settings */}
           <YStack className="gap-2">
             <GroupTitle>{t('settings.general.display.title')}</GroupTitle>
@@ -62,7 +62,7 @@ export default function GeneralSettingsScreen() {
                   <Text className="text-lg">{t('settings.general.theme.title')}</Text>
                 </XStack>
                 <XStack className="items-center gap-2">
-                  <Text className="text-gray-500">{t(`settings.general.theme.${activeTheme}`)}</Text>
+                  <Text>{t(`settings.general.theme.${themeSetting === 'system' ? 'auto' : themeSetting}`)}</Text>
                   <RowRightArrow />
                 </XStack>
               </PressableRow>

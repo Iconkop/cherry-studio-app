@@ -1,14 +1,12 @@
-import { BottomSheetModal } from '@gorhom/bottom-sheet'
-import { ImpactFeedbackStyle } from 'expo-haptics'
+import type { BottomSheetModal } from '@gorhom/bottom-sheet'
 import React, { useRef } from 'react'
 import { Keyboard } from 'react-native'
 
-import { Assistant, Model } from '@/types/assistant'
-import { FileMetadata } from '@/types/file'
-import { haptic } from '@/utils/haptic'
-
-import { AssetsIcon } from '@/componentsV2/icons'
 import { IconButton } from '@/componentsV2/base/IconButton'
+import { AssetsIcon } from '@/componentsV2/icons'
+import type { Assistant, Model } from '@/types/assistant'
+import type { FileMetadata } from '@/types/file'
+
 import { ToolSheet } from '../../Sheet/ToolSheet'
 
 interface AddAssetsButtonProps {
@@ -30,7 +28,6 @@ export const ToolButton: React.FC<AddAssetsButtonProps> = ({
 
   const handlePress = () => {
     Keyboard.dismiss()
-    haptic(ImpactFeedbackStyle.Medium)
     bottomSheetModalRef.current?.present()
   }
 

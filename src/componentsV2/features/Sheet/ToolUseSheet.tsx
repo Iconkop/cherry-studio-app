@@ -1,10 +1,13 @@
-import { BottomSheetModal } from '@gorhom/bottom-sheet'
-import React, { FC } from 'react'
+import type { BottomSheetModal } from '@gorhom/bottom-sheet'
+import { delay } from 'lodash'
+import type { FC } from 'react'
+import React from 'react'
 import { useTranslation } from 'react-i18next'
 
+import type { SelectionSheetItem } from '@/componentsV2/base/SelectionSheet'
+import SelectionSheet from '@/componentsV2/base/SelectionSheet'
 import { SquareFunction, Wrench } from '@/componentsV2/icons/LucideIcon'
-import { Assistant } from '@/types/assistant'
-import SelectionSheet, { SelectionSheetItem } from '@/componentsV2/base/SelectionSheet'
+import type { Assistant } from '@/types/assistant'
 
 interface ToolUseSheetProps {
   assistant: Assistant
@@ -20,12 +23,7 @@ export const ToolUseSheet: FC<ToolUseSheetProps> = ({ assistant, updateAssistant
       id: 'function',
       label: t('assistants.settings.tooluse.function'),
       icon: (isSelected: boolean) => (
-        <SquareFunction
-          size={20}
-          className={
-            isSelected ? 'text-green-100 dark:text-green-dark-100' : 'text-text-primary dark:text-text-primary-dark'
-          }
-        />
+        <SquareFunction size={20} className={isSelected ? 'text-green-100' : 'text-text-primary'} />
       ),
       isSelected: assistant.settings?.toolUseMode === 'function',
       onSelect: () => handleToolUseModeToggle('function')
@@ -34,12 +32,7 @@ export const ToolUseSheet: FC<ToolUseSheetProps> = ({ assistant, updateAssistant
       id: 'prompt',
       label: t('assistants.settings.tooluse.prompt'),
       icon: (isSelected: boolean) => (
-        <Wrench
-          size={20}
-          className={
-            isSelected ? 'text-green-100 dark:text-green-dark-100' : 'text-text-primary dark:text-text-primary-dark'
-          }
-        />
+        <Wrench size={20} className={isSelected ? 'text-green-100' : 'text-text-primary'} />
       ),
       isSelected: assistant.settings?.toolUseMode === 'prompt',
       onSelect: () => handleToolUseModeToggle('prompt')
@@ -55,7 +48,7 @@ export const ToolUseSheet: FC<ToolUseSheetProps> = ({ assistant, updateAssistant
         toolUseMode: newToolUseMode
       }
     })
-    ref.current?.dismiss()
+    delay(() => ref.current?.dismiss(), 50)
   }
 
   return <SelectionSheet items={toolUseOptions} ref={ref} />

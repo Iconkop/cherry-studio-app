@@ -1,5 +1,5 @@
 import { File } from 'expo-file-system'
-import OpenAI from 'openai'
+import type OpenAI from 'openai'
 import { toFile } from 'openai/uploads'
 
 import { isDedicatedImageGenerationModel } from '@/config/models'
@@ -7,9 +7,9 @@ import { defaultTimeout } from '@/constants'
 import { ChunkType } from '@/types/chunk'
 import { findImageBlocks, getMainTextContent } from '@/utils/messageUtils/find'
 
-import { BaseApiClient } from '../../clients/BaseApiClient'
-import { CompletionsParams, CompletionsResult, GenericChunk } from '../schemas'
-import { CompletionsContext, CompletionsMiddleware } from '../types'
+import type { BaseApiClient } from '../../clients/BaseApiClient'
+import type { CompletionsParams, CompletionsResult, GenericChunk } from '../schemas'
+import type { CompletionsContext, CompletionsMiddleware } from '../types'
 
 export const MIDDLEWARE_NAME = 'ImageGenerationMiddleware'
 
@@ -53,7 +53,9 @@ export const ImageGenerationMiddleware: CompletionsMiddleware =
               const binaryData: Uint8Array = await new File(block.file.path).bytes()
               const standardUint8Array = new Uint8Array(binaryData)
               const mimeType = `${block.file.type}/${block.file.ext.slice(1)}`
-              return await toFile(new Blob([standardUint8Array]), block.file.origin_name || 'image.png', { type: mimeType })
+              return await toFile(new Blob([standardUint8Array]), block.file.origin_name || 'image.png', {
+                type: mimeType
+              })
             })
           )
           imageFiles = imageFiles.concat(userImages.filter(Boolean) as Blob[])

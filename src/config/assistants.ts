@@ -3,7 +3,7 @@ import * as Localization from 'expo-localization'
 import assistantsEnJsonData from '@/resources/data/assistants-en.json'
 import assistantsZhJsonData from '@/resources/data/assistants-zh.json'
 import { loggerService } from '@/services/LoggerService'
-import { Assistant } from '@/types/assistant'
+import type { Assistant } from '@/types/assistant'
 import { storage } from '@/utils'
 const logger = loggerService.withContext('Assistant')
 
@@ -24,7 +24,10 @@ export function getSystemAssistants(): Assistant[] {
     emoji: '😀',
     prompt: '',
     topics: [],
-    type: 'system'
+    type: 'system',
+    settings: {
+      toolUseMode: 'function'
+    }
   }
   const translateAssistant: Assistant = {
     id: 'translate',

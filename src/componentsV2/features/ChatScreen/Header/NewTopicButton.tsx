@@ -1,23 +1,20 @@
-import { BottomSheetModal } from '@gorhom/bottom-sheet'
+import { messageDatabase } from '@database'
+import type { BottomSheetModal } from '@gorhom/bottom-sheet'
 import { useNavigation } from '@react-navigation/native'
-import { ImpactFeedbackStyle } from 'expo-haptics'
+import { isEmpty } from 'lodash'
 import React, { useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Pressable } from 'react-native'
 
-import { Text, YStack, SelectionSheet } from '@/componentsV2'
-import { MessageSquareDiff } from '@/componentsV2/icons/LucideIcon'
+import { SelectionSheet, Text, YStack } from '@/componentsV2'
 import EmojiAvatar from '@/componentsV2/features/Assistant/EmojiAvatar'
+import { MessageSquareDiff } from '@/componentsV2/icons/LucideIcon'
 import { useExternalAssistants } from '@/hooks/useAssistant'
 import { useTheme } from '@/hooks/useTheme'
-import { useTopics } from '@/hooks/useTopic'
-import { createNewTopic, getNewestTopic } from '@/services/TopicService'
-import { useAppDispatch } from '@/store'
-import { setCurrentTopicId } from '@/store/topic'
-import { Assistant } from '@/types/assistant'
-import { DrawerNavigationProps } from '@/types/naviagate'
-import { getAssistantWithTopic } from '@/utils/assistants'
-import { haptic } from '@/utils/haptic'
+import { useCurrentTopic } from '@/hooks/useTopic'
+import { topicService } from '@/services/TopicService'
+import type { Assistant } from '@/types/assistant'
+import type { DrawerNavigationProps } from '@/types/naviagate'
 
 interface NewTopicButtonProps {
   assistant: Assistant
@@ -26,31 +23,37 @@ interface NewTopicButtonProps {
 export const NewTopicButton: React.FC<NewTopicButtonProps> = ({ assistant }) => {
   const { t } = useTranslation()
   const navigation = useNavigation<DrawerNavigationProps>()
-  const dispatch = useAppDispatch()
-  const { topics } = useTopics()
+  const { switchTopic } = useCurrentTopic()
   const { assistants, isLoading } = useExternalAssistants()
-  const assistantWithTopics = getAssistantWithTopic(assistants, topics)
+
   const selectionSheetRef = useRef<BottomSheetModal | null>(null)
   const { isDark } = useTheme()
 
   const handleAddNewTopic = async (selectedAssistant?: Assistant) => {
-    haptic(ImpactFeedbackStyle.Medium)
     const targetAssistant = selectedAssistant || assistant
-    const newestTopic = await getNewestTopic()
 
-    if (newestTopic && newestTopic.assistantId === targetAssistant.id && newestTopic.messages.length === 0) {
-      newestTopic.assistantId = targetAssistant.id
-      dispatch(setCurrentTopicId(newestTopic.id))
-      navigation.navigate('Home', { screen: 'ChatScreen', params: { topicId: newestTopic.id } })
-    } else {
-      const newTopic = await createNewTopic(targetAssistant)
-      dispatch(setCurrentTopicId(newTopic.id))
+    // Check if the newest topic has messages
+    const newestTopic = await topicService.getNewestTopic()
+    const hasMessages = await messageDatabase.getHasMessagesWithTopicId(newestTopic?.id ?? '')
+
+    if (hasMessages || !newestTopic) {
+      // Create new topic (optimistic - UI updates immediately)
+      const newTopic = await topicService.createTopic(targetAssistant)
+      await switchTopic(newTopic.id)
       navigation.navigate('Home', { screen: 'ChatScreen', params: { topicId: newTopic.id } })
+    } else {
+      // Reuse the newest topic (update assistant if different)
+      if (newestTopic.assistantId !== targetAssistant.id) {
+        await topicService.updateTopic(newestTopic.id, {
+          assistantId: targetAssistant.id
+        })
+      }
+      await switchTopic(newestTopic.id)
+      navigation.navigate('Home', { screen: 'ChatScreen', params: { topicId: newestTopic.id } })
     }
   }
 
   const openAssistantSelection = () => {
-    haptic(ImpactFeedbackStyle.Medium)
     selectionSheetRef.current?.present()
   }
 
@@ -58,32 +61,27 @@ export const NewTopicButton: React.FC<NewTopicButtonProps> = ({ assistant }) => 
     selectionSheetRef.current?.dismiss()
   }
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const handleSelectAssistant = (selectedAssistant: Assistant) => {
     closeBottomSheet()
     handleAddNewTopic(selectedAssistant)
   }
 
   const selectionItems = React.useMemo(() => {
-    if (isLoading || !assistantWithTopics.length) {
+    if (isLoading || !assistants.length) {
       return []
     }
 
-    return assistantWithTopics.map(assistantItem => ({
+    return assistants.map(assistantItem => ({
       key: assistantItem.id,
       label: (
-        <YStack className="gap-0.5">
-          <Text
-            className="text-base leading-[18px] text-text-primary dark:text-text-primary-dark"
-            ellipsizeMode="tail"
-            numberOfLines={1}>
+        <YStack className="flex-1 justify-center gap-1">
+          <Text className="text-sm font-bold" numberOfLines={1} ellipsizeMode="tail">
             {assistantItem.name}
           </Text>
-          {assistantItem.description && (
-            <Text
-              className="text-xs text-text-secondary dark:text-text-secondary-dark opacity-70"
-              ellipsizeMode="tail"
-              numberOfLines={1}>
-              {assistantItem.description}
+          {!isEmpty(assistantItem.prompt) && (
+            <Text ellipsizeMode="tail" numberOfLines={1} className="text-text-secondary  text-xs">
+              {assistantItem.prompt}
             </Text>
           )}
         </YStack>
@@ -99,7 +97,7 @@ export const NewTopicButton: React.FC<NewTopicButtonProps> = ({ assistant }) => 
       ),
       onSelect: () => handleSelectAssistant(assistantItem)
     }))
-  }, [assistantWithTopics, isLoading, isDark, handleSelectAssistant])
+  }, [isLoading, assistants, isDark, handleSelectAssistant])
 
   return (
     <>
@@ -107,7 +105,7 @@ export const NewTopicButton: React.FC<NewTopicButtonProps> = ({ assistant }) => 
         onPress={() => handleAddNewTopic()}
         onLongPress={openAssistantSelection}
         unstable_pressDelay={50}
-        delayLongPress={350}
+        delayLongPress={150}
         className="active:opacity-20"
         disabled={isLoading}>
         <MessageSquareDiff size={24} />

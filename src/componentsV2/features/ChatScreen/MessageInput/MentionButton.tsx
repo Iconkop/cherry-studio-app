@@ -1,16 +1,15 @@
-import { BottomSheetModal } from '@gorhom/bottom-sheet'
-import { ImpactFeedbackStyle } from 'expo-haptics'
+import type { BottomSheetModal } from '@gorhom/bottom-sheet'
 import React, { useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Keyboard, TouchableOpacity } from 'react-native'
 
-import { AtSign } from '@/componentsV2/icons/LucideIcon'
-import { ModelIcon } from '@/componentsV2/icons'
-import { Assistant, Model } from '@/types/assistant'
-import { haptic } from '@/utils/haptic'
-import { getBaseModelName } from '@/utils/naming'
-import XStack from '@/componentsV2/layout/XStack'
 import Text from '@/componentsV2/base/Text'
+import { ModelIcon } from '@/componentsV2/icons'
+import { AtSign } from '@/componentsV2/icons/LucideIcon'
+import XStack from '@/componentsV2/layout/XStack'
+import type { Assistant, Model } from '@/types/assistant'
+import { getBaseModelName } from '@/utils/naming'
+
 import ModelSheet from '../../Sheet/ModelSheet'
 
 interface MentionButtonProps {
@@ -22,9 +21,8 @@ interface MentionButtonProps {
 
 const BUTTON_STYLES = {
   maxWidth: 150,
-  container:
-    'gap-1 items-center bg-green-10 dark:bg-green-dark-10 rounded-[48px] border-green-20 dark:border-green-dark-20 border-[0.5px] py-1 px-1',
-  text: 'text-green-100 dark:text-green-dark-100'
+  container: 'gap-1 items-center bg-green-10 rounded-[48px] border-green-20 border-[0.5px] py-1 px-1',
+  text: 'text-green-100'
 }
 
 const DISPLAY_CONSTANTS = {
@@ -39,7 +37,6 @@ export const MentionButton: React.FC<MentionButtonProps> = ({ mentions, setMenti
 
   const handlePress = () => {
     Keyboard.dismiss()
-    haptic(ImpactFeedbackStyle.Medium)
     bottomSheetModalRef.current?.present()
   }
   /**
@@ -52,7 +49,7 @@ export const MentionButton: React.FC<MentionButtonProps> = ({ mentions, setMenti
   const handleModelChange = async (models: Model[]) => {
     setMentions(models)
 
-    let updatedAssistant = { ...assistant }
+    let updatedAssistant: Assistant = assistant
     if (assistant.defaultModel) {
       updatedAssistant.model = models[0]
     } else {
@@ -63,9 +60,7 @@ export const MentionButton: React.FC<MentionButtonProps> = ({ mentions, setMenti
     await updateAssistant(updatedAssistant)
   }
 
-  const renderEmptyState = () => (
-    <AtSign size={DISPLAY_CONSTANTS.ICON_SIZE} className="text-green-100 dark:text-green-dark-100" />
-  )
+  const renderEmptyState = () => <AtSign size={DISPLAY_CONSTANTS.ICON_SIZE} />
 
   const renderSingleModel = (model: Model) => (
     <XStack className={`${BUTTON_STYLES.container} justify-center`}>

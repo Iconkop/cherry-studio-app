@@ -1,11 +1,13 @@
+import { messageDatabase } from '@database'
+
 import { loggerService } from '@/services/LoggerService'
-import { ExternalToolResult } from '@/types'
-import { CitationMessageBlock, MessageBlockStatus, MessageBlockType } from '@/types/message'
+import type { ExternalToolResult } from '@/types'
+import type { CitationMessageBlock } from '@/types/message'
+import { MessageBlockStatus, MessageBlockType } from '@/types/message'
 import { createCitationBlock } from '@/utils/messageUtils/create'
 import { findMainTextBlocks } from '@/utils/messageUtils/find'
 
-import { getMessageById } from '../../../../db/queries/messages.queries'
-import { BlockManager } from '../BlockManager'
+import type { BlockManager } from '../BlockManager'
 
 const logger = loggerService.withContext('Citation Callbacks')
 interface CitationCallbacksDependencies {
@@ -71,7 +73,7 @@ export const createCitationCallbacks = (deps: CitationCallbacksDependencies) => 
         }
         blockManager.smartBlockUpdate(blockId, changes, MessageBlockType.CITATION, true)
 
-        const assistantMessage = await getMessageById(assistantMsgId)
+        const assistantMessage = await messageDatabase.getMessageById(assistantMsgId)
 
         if (!assistantMessage) {
           logger.error(`[onLLMWebSearchComplete] Message ${assistantMsgId} not found.`)
@@ -106,7 +108,7 @@ export const createCitationCallbacks = (deps: CitationCallbacksDependencies) => 
         )
         citationBlockId = citationBlock.id
 
-        const assistantMessage = await getMessageById(assistantMsgId)
+        const assistantMessage = await messageDatabase.getMessageById(assistantMsgId)
 
         if (!assistantMessage) {
           logger.error(`[onLLMWebSearchComplete] Message ${assistantMsgId} not found.`)

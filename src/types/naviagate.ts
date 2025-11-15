@@ -1,26 +1,17 @@
-import { DrawerNavigationProp } from '@react-navigation/drawer'
-import { StackNavigationProp } from '@react-navigation/stack'
+import type { DrawerNavigationProp } from '@react-navigation/drawer'
+import type { NavigatorScreenParams, RouteProp } from '@react-navigation/native'
+import type { StackNavigationProp } from '@react-navigation/stack'
 
-import { AssistantStackParamList } from '@/navigators/AssistantStackNavigator'
-import { HomeStackParamList } from '@/navigators/HomeStackNavigator'
-import { AboutStackParamList } from '@/navigators/settings/AboutStackNavigator'
-import { DataSourcesStackParamList } from '@/navigators/settings/DataSourcesStackNavigator'
-import { GeneralSettingsStackParamList } from '@/navigators/settings/GeneralSettingsStackNavigator'
-import { ProvidersStackParamList } from '@/navigators/settings/ProvidersStackNavigator'
-import { WebSearchStackParamList } from '@/navigators/settings/WebSearchStackNavigator'
-import { SettingsStackParamList } from '@/navigators/SettingsStackNavigator'
-
-// Root Stack Navigator (MainStackNavigator)
-export type RootStackParamList = {
-  WelcomeScreen: undefined
-  HomeScreen: { screen: string; params: { topicId: string } } | undefined // This is actually the AppDrawerNavigator
-  // ChatScreen: { topicId: string }
-  // TopicScreen: undefined
-  // AssistantScreen: undefined
-  // AssistantMarketScreen: undefined
-  // AssistantDetailScreen: { assistantId: string; tab?: string }
-  // Settings: { screen: string; params?: any } | undefined
-}
+import type { AssistantStackParamList } from '@/navigators/AssistantStackNavigator'
+import type { HomeStackParamList } from '@/navigators/HomeStackNavigator'
+import type { McpStackParamList } from '@/navigators/McpStackNavigator'
+import type { AboutStackParamList } from '@/navigators/settings/AboutStackNavigator'
+import type { DataSourcesStackParamList } from '@/navigators/settings/DataSourcesStackNavigator'
+import type { GeneralSettingsStackParamList } from '@/navigators/settings/GeneralSettingsStackNavigator'
+import type { ProvidersStackParamList } from '@/navigators/settings/ProvidersStackNavigator'
+import type { WebSearchStackParamList } from '@/navigators/settings/WebSearchStackNavigator'
+import type { SettingsStackParamList } from '@/navigators/SettingsStackNavigator'
+import type { WelcomeStackParamList } from '@/navigators/WelcomeStackNavigator'
 
 // App Drawer Navigator
 export type AppDrawerParamList = {
@@ -40,6 +31,13 @@ export type AppDrawerParamList = {
     | { screen: 'AssistantMarketScreen' }
     | { screen: 'AssistantDetailScreen'; params: { assistantId: string; tab?: string } }
     | undefined
+  Mcp: { screen: 'McpMarketScreen' }
+}
+
+// Root Stack Navigator (MainStackNavigator)
+export type RootStackParamList = {
+  Welcome: NavigatorScreenParams<WelcomeStackParamList> | undefined
+  HomeScreen: NavigatorScreenParams<AppDrawerParamList> | undefined
 }
 
 // Navigation Props
@@ -49,7 +47,9 @@ export type DrawerNavigationProps = DrawerNavigationProp<AppDrawerParamList>
 // Nested Navigator Props
 export type HomeNavigationProps = StackNavigationProp<HomeStackParamList>
 export type AssistantNavigationProps = StackNavigationProp<AssistantStackParamList>
+export type McpNavigationProps = StackNavigationProp<McpStackParamList>
 export type SettingsNavigationProps = StackNavigationProp<SettingsStackParamList>
+export type WelcomeNavigationProps = StackNavigationProp<WelcomeStackParamList>
 
 // Settings Sub-Navigator Props
 export type GeneralSettingsNavigationProps = StackNavigationProp<GeneralSettingsStackParamList>
@@ -60,3 +60,9 @@ export type AboutNavigationProps = StackNavigationProp<AboutStackParamList>
 
 // Legacy compatibility
 export type NavigationProps = RootNavigationProps
+
+type LandropRouteParamList = {
+  LandropSettingsScreen: { redirectToHome?: boolean } | undefined
+}
+
+export type LandropSettingsRouteProp = RouteProp<LandropRouteParamList, 'LandropSettingsScreen'>

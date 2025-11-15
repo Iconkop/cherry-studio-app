@@ -1,12 +1,12 @@
+import { LinearGradient } from 'expo-linear-gradient'
 import React, { useState } from 'react'
 import { Pressable, StyleSheet, View } from 'react-native'
 
-import { ThinkingMessageBlock } from '@/types/message'
-
-import { LinearGradient } from 'expo-linear-gradient'
 import { MarqueeComponent } from '@/componentsV2'
-import ReactNativeMarkdown from '../../markdown/ReactNativeMarkdown'
 import { useTheme } from '@/hooks/useTheme'
+import type { ThinkingMessageBlock } from '@/types/message'
+
+import ReactNativeMarkdown from '../../markdown/ReactNativeMarkdown'
 
 interface Props {
   block: ThinkingMessageBlock

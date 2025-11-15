@@ -1,5 +1,7 @@
+import { delay } from 'lodash'
+
 import { loggerService } from '@/services/LoggerService'
-import { Assistant } from '@/types/assistant'
+import type { Assistant } from '@/types/assistant'
 
 const logger = loggerService.withContext('AI Feature Handler')
 
@@ -19,7 +21,8 @@ export const useAIFeatureHandler = ({ assistant, updateAssistant, onSuccess }: U
       }
 
       await updateAssistant(updatedAssistant)
-      onSuccess?.()
+      // https://github.com/gorhom/react-native-bottom-sheet/issues/1561
+      delay(() => onSuccess?.(), 50)
     } catch (error) {
       logger.error('Error updating AI feature:', error)
     }

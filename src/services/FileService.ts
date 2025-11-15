@@ -1,13 +1,13 @@
+import { fileDatabase } from '@database'
 import { Directory, File, Paths } from 'expo-file-system'
 import * as FileSystem from 'expo-file-system/legacy'
 import * as Sharing from 'expo-sharing'
 
 import { DEFAULT_DOCUMENTS_STORAGE, DEFAULT_IMAGES_STORAGE, DEFAULT_STORAGE } from '@/constants/storage'
 import { loggerService } from '@/services/LoggerService'
-import { FileMetadata, FileTypes } from '@/types/file'
+import type { FileMetadata } from '@/types/file'
+import { FileTypes } from '@/types/file'
 import { uuid } from '@/utils'
-
-import { deleteFileById, getAllFiles, getFileById, upsertFiles } from '../../db/queries/files.queries'
 
 export interface ShareFileResult {
   success: boolean
@@ -15,13 +15,14 @@ export interface ShareFileResult {
 }
 
 const logger = loggerService.withContext('File Service')
+const { getAllFiles, getFileById } = fileDatabase
 
 // 辅助函数，确保目录存在
 async function ensureDirExists(dir: Directory) {
   const dirInfo = dir.info()
 
   if (!dirInfo.exists) {
-    dir.create()
+    dir.create({ intermediates: true })
   }
 }
 
@@ -30,7 +31,7 @@ export function readFile(file: FileMetadata): string {
 }
 
 export function readBase64File(file: FileMetadata): string {
-  return new File(file.path).base64()
+  return new File(file.path).base64Sync()
 }
 
 export async function writeBase64File(data: string): Promise<FileMetadata> {
@@ -45,7 +46,7 @@ export async function writeBase64File(data: string): Promise<FileMetadata> {
 
   // Use legacy API to write base64 data directly
   await FileSystem.writeAsStringAsync(fileUri, cleanedBase64, {
-    encoding: FileSystem.EncodingType.Base64,
+    encoding: FileSystem.EncodingType.Base64
   })
 
   const file = new File(fileUri)
@@ -58,7 +59,7 @@ export async function writeBase64File(data: string): Promise<FileMetadata> {
     size: file.size,
     ext: '.png',
     type: FileTypes.IMAGE,
-    created_at: '',
+    created_at: Date.now(),
     count: 1
   }
 }
@@ -84,8 +85,11 @@ export async function uploadFiles(
       // ios upload image will be .JPG
       const destinationUri = `${storageDir.uri}${file.id}.${file.ext.toLowerCase()}`
       const destinationFile = new File(destinationUri)
-      sourceFile.move(destinationFile)
 
+      if (destinationFile.exists) {
+        destinationFile.delete()
+      }
+      sourceFile.move(destinationFile)
 
       if (!sourceFile.exists) {
         throw new Error('Failed to copy file or get info.')
@@ -97,7 +101,7 @@ export async function uploadFiles(
         size: sourceFile.size
       }
       console.log('finalFile', finalFile)
-      upsertFiles([finalFile])
+      fileDatabase.upsertFiles([finalFile])
       return finalFile
     } catch (error) {
       logger.error('Error uploading file:', error)
@@ -109,16 +113,16 @@ export async function uploadFiles(
 
 async function deleteFile(id: string, force: boolean = false): Promise<void> {
   try {
-    const file = await getFileById(id)
+    const file = await fileDatabase.getFileById(id)
     if (!file) return
     const sourceFile = new File(file.path)
 
     if (!force && file.count > 1) {
-      upsertFiles([{ ...file, count: file.count - 1 }])
+      fileDatabase.upsertFiles([{ ...file, count: file.count - 1 }])
       return
     }
 
-    deleteFileById(id)
+    fileDatabase.deleteFileById(id)
 
     sourceFile.delete()
   } catch (error) {
@@ -152,8 +156,7 @@ export async function resetCacheDirectory() {
     }
 
     // Recreate Files directory
-    DEFAULT_STORAGE.create()
-
+    DEFAULT_STORAGE.create({ intermediates: true })
   } catch (error) {
     logger.error('resetCacheDirectory', error)
   }
@@ -240,8 +243,8 @@ export async function shareFile(uri: string): Promise<ShareFileResult> {
   }
 }
 
-export async function downloadFileAsync(url: string, destination: File,){
-  return File.downloadFileAsync(url,destination)
+export async function downloadFileAsync(url: string, destination: File) {
+  return File.downloadFileAsync(url, destination)
 }
 
 export default {

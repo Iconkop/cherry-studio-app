@@ -1,18 +1,18 @@
 import { useNavigation } from '@react-navigation/native'
 import React from 'react'
 import { useTranslation } from 'react-i18next'
-import { SFSymbol } from 'sf-symbols-typescript'
+import type { SFSymbol } from 'sf-symbols-typescript'
 
+import ContextMenu from '@/componentsV2/base/ContextMenu'
+import Text from '@/componentsV2/base/Text'
+import { Edit3, ProviderIcon, Trash2 } from '@/componentsV2/icons'
+import RowRightArrow from '@/componentsV2/layout/Row/RowRightArrow'
+import XStack from '@/componentsV2/layout/XStack'
 import { useDialog } from '@/hooks/useDialog'
 import { useToast } from '@/hooks/useToast'
 import { deleteProvider } from '@/services/ProviderService'
-import { Provider } from '@/types/assistant'
-import { HomeNavigationProps } from '@/types/naviagate'
-import { Edit3, Trash2, ProviderIcon } from '@/componentsV2/icons'
-import XStack from '@/componentsV2/layout/XStack'
-import RowRightArrow from '@/componentsV2/layout/Row/RowRightArrow'
-import Text from '@/componentsV2/base/Text'
-import { ContextMenu } from '@/componentsV2/base/ContextMenu'
+import type { Provider } from '@/types/assistant'
+import type { ProvidersNavigationProps } from '@/types/naviagate'
 
 interface ProviderItemProps {
   provider: Provider
@@ -22,7 +22,7 @@ interface ProviderItemProps {
 
 export const ProviderItem: React.FC<ProviderItemProps> = ({ provider, mode = 'enabled', onEdit }) => {
   const { t } = useTranslation()
-  const navigation = useNavigation<HomeNavigationProps>()
+  const navigation = useNavigation<ProvidersNavigationProps>()
   const dialog = useDialog()
   const toast = useToast()
 
@@ -54,23 +54,20 @@ export const ProviderItem: React.FC<ProviderItemProps> = ({ provider, mode = 'en
   }
 
   const handlePress = () => {
-    navigation.navigate('ProvidersSettings', {
-      screen: 'ProviderSettingsScreen',
-      params: { providerId: provider.id }
-    })
+    navigation.navigate('ProviderSettingsScreen', { providerId: provider.id })
   }
 
   const providerRow = (
-    <XStack className="justify-between items-center py-3 px-4">
-      <XStack className="gap-2 items-center">
+    <XStack className="items-center justify-between px-4 py-3">
+      <XStack className="items-center gap-2">
         <ProviderIcon provider={provider} />
-        <Text className="text-base text-text-primary dark:text-text-primary-dark">
+        <Text className="text-text-primary text-lg">
           {t(`provider.${provider.id}`, { defaultValue: provider.name })}
         </Text>
       </XStack>
-      <XStack className="gap-2.5 items-center">
+      <XStack className="items-center gap-2.5">
         {shouldShowStatus && (
-          <Text className="py-0.5 px-2 rounded-lg border-[0.5px] bg-green-10 border-green-20 text-green-100 text-sm dark:bg-green-dark-10 dark:border-green-dark-20 dark:text-green-dark-100">
+          <Text className="border-green-20 bg-green-10 rounded-lg border-[0.5px] px-2 py-0.5 text-sm text-green-100">
             {statusText}
           </Text>
         )}

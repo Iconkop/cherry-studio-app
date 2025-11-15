@@ -1,5 +1,6 @@
-import { RouteProp, useRoute } from '@react-navigation/native'
-import { ImpactFeedbackStyle } from 'expo-haptics'
+import type { RouteProp } from '@react-navigation/native'
+import { useRoute } from '@react-navigation/native'
+import { cn, Tabs } from 'heroui-native'
 import { groupBy, isEmpty, uniqBy } from 'lodash'
 import React, { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -9,14 +10,16 @@ import {
   Container,
   Group,
   HeaderBar,
+  IconButton,
   ModelGroup,
   SafeAreaContainer,
+  SearchInput,
   Text,
   XStack,
-  YStack,
-  IconButton,
-  SearchInput
+  YStack
 } from '@/componentsV2'
+import { ModelTags } from '@/componentsV2/features/ModelTags'
+import { ModelIcon } from '@/componentsV2/icons'
 import { Minus, Plus } from '@/componentsV2/icons/LucideIcon'
 import {
   groupQwenModels,
@@ -29,15 +32,12 @@ import {
 } from '@/config/models'
 import { isFreeModel } from '@/config/models/free'
 import { useSearch } from '@/hooks/useSearch'
-import { ProvidersStackParamList } from '@/navigators/settings/ProvidersStackNavigator'
+import type { ProvidersStackParamList } from '@/navigators/settings/ProvidersStackNavigator'
 import { fetchModels } from '@/services/ApiService'
 import { loggerService } from '@/services/LoggerService'
 import { getProviderById, saveProvider } from '@/services/ProviderService'
-import { Model, Provider } from '@/types/assistant'
-import { haptic } from '@/utils/haptic'
+import type { Model, Provider } from '@/types/assistant'
 import { getDefaultGroupName } from '@/utils/naming'
-import { ModelIcon } from '@/componentsV2/icons'
-import { ModelTags } from '@/componentsV2/features/ModelTags'
 const logger = loggerService.withContext('ManageModelsScreen')
 
 type ProviderSettingsRouteProp = RouteProp<ProvidersStackParamList, 'ManageModelsScreen'>
@@ -138,7 +138,7 @@ export default function ManageModelsScreen() {
   } = useSearch(
     allModels,
     useCallback((model: Model) => [model.id, model.name || ''], []),
-    { delay: 300 }
+    { delay: 100 }
   )
 
   const filteredModels = filterModels(searchFilteredModels, '', activeFilterType)
@@ -152,22 +152,18 @@ export default function ManageModelsScreen() {
   }
 
   const onAddModel = async (model: Model) => {
-    haptic(ImpactFeedbackStyle.Medium)
     await handleUpdateModels(uniqBy([...(provider?.models || []), model], 'id'))
   }
 
   const onRemoveModel = async (model: Model) => {
-    haptic(ImpactFeedbackStyle.Medium)
     await handleUpdateModels((provider?.models || []).filter(m => m.id !== model.id))
   }
 
   const onAddAllModels = async (modelsToAdd: Model[]) => {
-    haptic(ImpactFeedbackStyle.Medium)
     await handleUpdateModels(uniqBy([...(provider?.models || []), ...modelsToAdd], 'id'))
   }
 
   const onRemoveAllModels = async (modelsToRemove: Model[]) => {
-    haptic(ImpactFeedbackStyle.Medium)
     const modelsToRemoveIds = new Set(modelsToRemove.map(m => m.id))
     await handleUpdateModels((provider?.models || []).filter(m => !modelsToRemoveIds.has(m.id)))
   }
@@ -195,12 +191,6 @@ export default function ManageModelsScreen() {
     fetchAndSetModels()
   }, [providerId])
 
-  const getTabStyle = (isActive: boolean) => ({
-    height: '100%',
-    backgroundColor: isActive ? '$background' : 'transparent',
-    borderRadius: 20
-  })
-
   return (
     <SafeAreaContainer className="flex-1">
       {provider && <HeaderBar title={t(`provider.${provider.id}`, { defaultValue: provider.name })} />}
@@ -211,23 +201,20 @@ export default function ManageModelsScreen() {
       ) : (
         <Container className="pb-0" onStartShouldSetResponder={() => false} onMoveShouldSetResponder={() => false}>
           {/* Filter Tabs */}
-          {/*<Tabs
-            defaultValue="all"
-            value={activeFilterType}
-            onValueChange={setActiveFilterType}
-            orientation="horizontal"
-            flexDirection="column"
-            height={34}>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              <Tabs.List aria-label="Model filter tabs" gap="10" flexDirection="row">
+          <Tabs value={activeFilterType} onValueChange={setActiveFilterType}>
+            <Tabs.ScrollView>
+              <Tabs.List aria-label="Model filter tabs" className="bg-transparent">
+                <Tabs.Indicator />
                 {TAB_CONFIGS.map(({ value, i18nKey }) => (
-                  <Tabs.Tab key={value} value={value} {...getTabStyle(activeFilterType === value)}>
-                    <Text>{t(i18nKey)}</Text>
-                  </Tabs.Tab>
+                  <Tabs.Trigger key={value} value={value}>
+                    <Tabs.Label className={cn(activeFilterType === value ? 'text-green-100' : undefined)}>
+                      {t(i18nKey)}
+                    </Tabs.Label>
+                  </Tabs.Trigger>
                 ))}
               </Tabs.List>
-            </ScrollView>
-          </Tabs>*/}
+            </Tabs.ScrollView>
+          </Tabs>
 
           <SearchInput placeholder={t('settings.models.search')} value={searchText} onChangeText={setSearchText} />
 
@@ -235,8 +222,8 @@ export default function ManageModelsScreen() {
             <Group className="flex-1">
               <ModelGroup
                 modelGroups={sortedModelGroups}
-                renderModelItem={(model, index) => (
-                  <XStack className="items-center justify-between w-full">
+                renderModelItem={(model, _index) => (
+                  <XStack className="w-full items-center justify-between">
                     <XStack className="flex-1 gap-2">
                       <XStack className="items-center justify-center">
                         <ModelIcon model={model} />
@@ -252,12 +239,9 @@ export default function ManageModelsScreen() {
                       <IconButton
                         icon={
                           isModelInCurrentProvider(model.id) ? (
-                            <Minus size={18} className="rounded-full bg-red-20 text-red-100 dark:text-red-100" />
+                            <Minus size={18} className="bg-red-20 rounded-full text-red-100 dark:text-red-100" />
                           ) : (
-                            <Plus
-                              size={18}
-                              className="rounded-full bg-green-20 text-green-100 dark:bg-green-dark-20 dark:text-green-dark-100"
-                            />
+                            <Plus size={18} className="bg-green-20 rounded-full text-green-100 dark:text-green-100" />
                           )
                         }
                         onPress={
@@ -271,12 +255,9 @@ export default function ManageModelsScreen() {
                   <IconButton
                     icon={
                       isAllModelsInCurrentProvider(models) ? (
-                        <Minus size={18} className="rounded-full bg-red-20 text-red-100 dark:text-red-100" />
+                        <Minus size={18} className="bg-red-20 rounded-full text-red-100 dark:text-red-100" />
                       ) : (
-                        <Plus
-                          size={18}
-                          className="rounded-full bg-green-20 text-green-100 dark:bg-green-dark-20 dark:text-green-dark-100"
-                        />
+                        <Plus size={18} className="bg-green-20 rounded-full text-green-100 dark:text-green-100" />
                       )
                     }
                     onPress={

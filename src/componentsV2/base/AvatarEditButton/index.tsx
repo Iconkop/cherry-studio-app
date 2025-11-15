@@ -1,10 +1,12 @@
-import React from 'react'
-import EmojiPicker, { EmojiType } from 'rn-emoji-keyboard'
-import { TouchableOpacity } from 'react-native'
 import { LinearGradient } from 'expo-linear-gradient'
+import React from 'react'
+import { TouchableOpacity } from 'react-native'
+import type { EmojiType } from 'rn-emoji-keyboard'
+import EmojiPicker from 'rn-emoji-keyboard'
 
-import { useTheme } from '@/hooks/useTheme'
 import YStack from '@/componentsV2/layout/YStack'
+import { useTheme } from '@/hooks/useTheme'
+
 import Text from '../Text'
 
 interface AvatarEditButtonProps {
@@ -41,7 +43,7 @@ export function AvatarEditButton({
     <YStack className="relative">
       <TouchableOpacity
         onPress={() => setIsOpen(prev => !prev)}
-        className="rounded-full border-[5px] border-green-100 overflow-hidden"
+        className="overflow-hidden rounded-full border-[5px] border-green-100"
         style={{
           width: size,
           height: size,
@@ -53,7 +55,7 @@ export function AvatarEditButton({
           })
         }}>
         {isEmoji ? (
-          <Text style={{ fontSize: size * 0.58 }} className="text-text-primary dark:text-text-primary-dark">
+          <Text style={{ fontSize: size * 0.5, lineHeight: size * 0.5 }} className="text-text-primary">
             {content}
           </Text>
         ) : (
